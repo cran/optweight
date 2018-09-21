@@ -1,0 +1,17 @@
+c61ca1659e530f9564dcb1e5ba5aa5c9 *DESCRIPTION
+27b08222e7d3e44c3e2be42ca1c2f606 *NAMESPACE
+4e027d3e96cb51e9ce4b0942c7d687ee *NEWS.md
+1399fc39b871e65b0f405fb2ba08e784 *R/check.tols.R
+31a24beedff4a8b9b353b9712c373f16 *R/functions_for_processing.R
+23aae480288e69bc8b8e90050e75b0e7 *R/optweight.R
+49131522da0c45ede95978874f52c4ac *R/optweight.fit.R
+82723e9889aadea1464cfc5619ce3d36 *R/plot.optweight.R
+39879f9c1aa27130dd3ce9bb2ca99d6f *R/summary.R
+7e310a33fbce230ab0996b8d39081968 *README.md
+3b5823cd7dd8b376f76c2f44450155f8 *build/partial.rdb
+5f1219a73331128edd41ff802702b9e8 *man/check.targets.Rd
+5e3ec0226e733c9a9597a557005a3362 *man/check.tols.Rd
+e59ab3ecf7e42ce5dce001d9917f4636 *man/optweight.Rd
+b719e00c3bf395b05328c6918b0a4c01 *man/optweight.fit.Rd
+8cae47560019b20c6f102f80f54042f7 *man/plot.optweight.Rd
+85a5ad8b46ffe06b94bc87bbc3c299fa *man/summary.optweight.Rd
