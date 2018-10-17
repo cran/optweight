@@ -1,21 +1,34 @@
 optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets = NULL, s.weights = NULL, focal = NULL, norm = "l2", std.binary = FALSE, std.cont = TRUE, min.w = 0, verbose = FALSE, ...) {
-  #treat, covs, tols can be lists (for different times), or vec, mat, vec (respectively)
+
   args <- list(...)
 
   #Process args
   args[names(args) %nin% names(formals(rosqp::osqpSettings))] <- NULL
   if (is_null(args[["adaptive_rho"]])) args[["adaptive_rho"]] <- TRUE
-  if (is_null(args[["max_iter"]])) args[["max_iter"]] <- 2E5
-  if (is_null(args[["eps_abs"]])) args[["eps_abs"]] <- 1E-9
-  if (is_null(args[["eps_rel"]])) args[["eps_rel"]] <- 1E-9
+  if (is_null(args[["max_iter"]])) args[["max_iter"]] <- 2E5L
+  if (is_null(args[["eps_abs"]])) args[["eps_abs"]] <- 1E-8
+  if (is_null(args[["eps_rel"]])) args[["eps_rel"]] <- 1E-8
   args[["verbose"]] <- verbose
 
-  if (missing(treat.list)) stop("treat.list must be supplied.", call. = FALSE)
-  else if (!is.vector(list(treat.list), mode = "list")) stop("treat.list must be a list.", call. = FALSE)
-  if (missing(covs.list)) stop("covs.list must be supplied.", call. = FALSE)
-  else if (!is.vector(list(covs.list), mode = "list")) stop("covs.list must be a list.", call. = FALSE)
-  if (missing(tols)) stop("tols must be supplied.", call. = FALSE)
-  else if (!is.vector(list(tols), mode = "list")) stop("tols must be a list.", call. = FALSE)
+  key.args <- c("treat.list", "covs.list", "tols")
+  missing.args <- args.not.list <- setNames(rep(FALSE, length(key.args)), key.args)
+  for (arg in key.args) {
+    if (eval(substitute(missing(q), list(q = arg)))) {
+      missing.args[arg] <- TRUE
+    }
+    else if (!is.vector(get(arg), mode = "list")) {
+      args.not.list[arg] <- TRUE
+    }
+  }
+  if (any(missing.args)) stop(paste(word.list(names(missing.args)[missing.args]), "must be supplied."), call. = FALSE)
+  if (any(args.not.list)) stop(paste(word.list(names(args.not.list)[args.not.list]), "must be a list."), call. = FALSE)
+
+  # if (missing(treat.list)) stop("treat.list must be supplied.", call. = FALSE)
+  # else if (!is.vector(treat.list, mode = "list")) stop("treat.list must be a list.", call. = FALSE)
+  # if (missing(covs.list)) stop("covs.list must be supplied.", call. = FALSE)
+  # else if (!is.vector(covs.list, mode = "list")) stop("covs.list must be a list.", call. = FALSE)
+  # if (missing(tols)) stop("tols must be supplied.", call. = FALSE)
+  # else if (length(tols) > 0 && !is.vector(tols, mode = "list")) stop("tols must be a list.", call. = FALSE)
 
   treat.types <- vapply(treat.list, function(x) {
     if (is.factor(x) || is.character(x) || is_binary(x)) "cat"
@@ -101,11 +114,12 @@ optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets
     if (treat.types[i] == "cat") {
       targeted[[i]] <- !is.na(targets[[i]])
       balanced[[i]] <- !targeted[[i]]
+      #balanced[[i]] <- rep(TRUE, length(targeted[[i]]))
       treat.sds[[i]] <- NA_real_
       treat.means[[i]] <- NA_real_
 
       #tols
-      if (std.binary && std.cont) rep(TRUE, length(tols.list[[i]]))
+      if (std.binary && std.cont) vars.to.standardize <- rep(TRUE, length(tols.list[[i]]))
       else if (!std.binary && std.cont) vars.to.standardize <- !apply(covs.list[[i]], 2, is_binary)
       else if (std.binary && !std.cont) vars.to.standardize <- apply(covs.list[[i]], 2, is_binary)
       else vars.to.standardize <- rep(FALSE, length(tols.list[[i]]))
@@ -115,9 +129,9 @@ optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets
                           abs(tols.list[[i]]))
       #Note: duals work incorrecly unless tols are > 0, so replace small tols with
       #sqrt(.Machine$double.eps).
-      tols[[i]] <- ifelse(tols[[i]] < sqrt(.Machine$double.eps),
-                          sqrt(.Machine$double.eps),
-                          tols[[i]])
+      # tols[[i]] <- ifelse(tols[[i]] < sqrt(.Machine$double.eps),
+      #                     sqrt(.Machine$double.eps),
+      #                     tols[[i]])
     }
     else {
       targeted[[i]] <- !is.na(targets[[i]])
@@ -132,9 +146,9 @@ optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets
       tols[[i]] <- abs(tols.list[[i]]*sds[[i]]*treat.sds[[i]])
       #Note: duals work incorrecly unless tols are > 0, so replace small tols with
       #sqrt(.Machine$double.eps).
-      tols[[i]] <- ifelse(tols[[i]] < sqrt(.Machine$double.eps),
-                          sqrt(.Machine$double.eps),
-                          tols[[i]])
+      # tols[[i]] <- ifelse(tols[[i]] < sqrt(.Machine$double.eps),
+      #                     sqrt(.Machine$double.eps),
+      #                     tols[[i]])
     }
   }
 
@@ -169,10 +183,13 @@ optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets
     }
 
     #Targeting constraints
+    #Note: need 2 * in order to simulate tols/2 but using original tols.
+    #This makes dual variables work as expected.
     G2 = do.call("rbind", lapply(times, function(i) {
       if (any(targeted[[i]])) {
         if (treat.types[i] == "cat") do.call("rbind", lapply(unique.treats[[i]], function(t)
-          if (is_null(focal) || (is_not_null(focal) && t != focal)) t(covs.list[[i]][, targeted[[i]], drop = FALSE] * (treat.list[[i]] == t) * sw / n[[i]][t])
+          if (is_null(focal)) 2 * t(covs.list[[i]][, targeted[[i]], drop = FALSE] * (treat.list[[i]] == t) * sw / n[[i]][t])
+          else if (is_not_null(focal) && t != focal) t(covs.list[[i]][, targeted[[i]], drop = FALSE] * (treat.list[[i]] == t) * sw / n[[i]][t])
         ))
         else rbind(t(covs.list[[i]][, targeted[[i]], drop = FALSE] * sw), treat.list[[i]] * sw) #variables are centered
       }
@@ -181,7 +198,7 @@ optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets
     H2l = do.call("c", lapply(times, function(i) {
       if (any(targeted[[i]])) {
         if (treat.types[i] == "cat") do.call("c", lapply(unique.treats[[i]], function(t) {
-          if (is_null(focal)) targets[[i]][targeted[[i]]] - tols[[i]][targeted[[i]]]/2
+          if (is_null(focal)) 2 * targets[[i]][targeted[[i]]] - tols[[i]][targeted[[i]]]
           else if (is_not_null(focal) && t != focal) targets[[i]][targeted[[i]]] - tols[[i]][targeted[[i]]]
         }))
         else rep(0, sum(targeted[[i]]) + 1) #variables are centered at targets; +1 for treat
@@ -191,7 +208,7 @@ optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets
     H2u = do.call("c", lapply(times, function(i) {
       if (any(targeted[[i]])) {
         if (treat.types[i] == "cat") do.call("c", lapply(unique.treats[[i]], function(t) {
-          if (is_null(focal)) targets[[i]][targeted[[i]]] + tols[[i]][targeted[[i]]]/2
+          if (is_null(focal)) 2 * targets[[i]][targeted[[i]]] + tols[[i]][targeted[[i]]]
           else if (is_not_null(focal) && t != focal) targets[[i]][targeted[[i]]] + tols[[i]][targeted[[i]]]
         }))
         else rep(0, sum(targeted[[i]]) + 1) #variables are centered at targets; +1 for treat
@@ -513,11 +530,11 @@ optweight.fit <- function(treat.list, covs.list, tols, estimand = "ATE", targets
       balanced.covs <- colnames(covs.list[[i]])[balanced[[i]]]
       if (length(treat.combs) > 0 && length(balanced.covs) > 0) {
         bd <- data.frame(expand.grid(constraint = "balance",
-                                   cov = balanced.covs,
-                                   treat = treat.combs,
-                                   stringsAsFactors = FALSE),
-                       dual = balance_duals[kb:(kb + length(treat.combs) * length(balanced.covs) - 1)]
-                       )
+                                     cov = balanced.covs,
+                                     treat = treat.combs,
+                                     stringsAsFactors = FALSE),
+                         dual = balance_duals[kb:(kb + length(treat.combs) * length(balanced.covs) - 1)]
+        )
       }
       else bd <- NULL
       kb <- kb + length(treat.combs) * length(balanced.covs)
