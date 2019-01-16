@@ -1,9 +1,10 @@
-optweight <- function(formula, data = NULL, tols = 0, estimand = "ATE", targets = NULL, s.weights = NULL, focal = NULL, verbose = FALSE, ...) {
+optweight <- function(formula, data = NULL, tols = 0, estimand = "ATE", targets = NULL, s.weights = NULL, focal = NULL, verbose = FALSE, force = FALSE, ...) {
 
   if (!is.list(formula)) formula.list <- list(formula)
   else formula.list <- formula
   times <- seq_along(formula.list)
   onetime <- length(formula.list) == 1
+  if (!onetime && !force) stop("Optweights are currently not valid for longitudinal treatments. Set force = TRUE to bypass this message at your own risk.", call. = FALSE)
 
   if (!is.list(tols)) tols.list <- list(tols)
   else tols.list <- tols
@@ -20,7 +21,7 @@ optweight <- function(formula, data = NULL, tols = 0, estimand = "ATE", targets 
   }
 
   reported.covs.list <- covs.list <- treat.list <- ct <- vector("list", length(formula.list))
-  n <- 0 * times
+  n <- rep(NA_integer_, length(times))
   for (i in times) {
     #Process treat and covs from formula and data
     t.c <- get.covs.and.treat.from.formula(formula.list[[i]], data)
@@ -86,6 +87,7 @@ optweight <- function(formula, data = NULL, tols = 0, estimand = "ATE", targets 
                            targets = targets,
                            s.weights = sw,
                            verbose = verbose,
+                           force = force,
                            ...)
 
   #Check for convergence

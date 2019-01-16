@@ -59,7 +59,7 @@ summary(ow)
     
             Coef of Var Mean Abs Dev
     treated      0.0000       0.0000
-    control      1.9019       1.3719
+    control      1.9018       1.3719
     overall      1.5897       0.9585
     
     - Effective Sample Sizes:
@@ -110,7 +110,7 @@ summ(lm(re78 ~ treat, data = lalonde, weights = ow$weights), confint = TRUE,
     Standard errors: Robust, type = HC3
                    Est.    2.5%   97.5% t val.    p    
     (Intercept) 5342.94 4635.09 6050.78  14.85 0.00 ***
-    treat       1006.20   57.22 1955.19   2.09 0.04   *
+    treat       1006.21   57.22 1955.19   2.09 0.04   *
 
 The lower-level function `optweight.fit` operates on the covariates and
 treatment variables directly.

@@ -1,6 +1,14 @@
 optweight News and Updates
 ======
 
+Version 0.2.1
+
+* Changed default `min.w` in `optweight.fit()` and `optweight.svy.fit()` to 1E-8 from 0. This ensures all weights are nonzero, which can reduce bugs in other functions that require nonzero weights (e.g, `summ()` in `jtools` and `svyglm()` in survey`).
+
+* Fixed warning that would occur when interactions were present in the model formula in `optweight()`.
+
+* optweights have been discovered to be invalid for longitudinal treatments, so attempting to use `optweight()`or `optweight.fit()` with longitudinal treatments will now produce an error. This can be overridden by setting `force = TRUE`, though this is not recommended until further research is done.
+
 Version 0.2.0
 
 * Added `optweight.svy` and associated methods and functions for estimating survey weights using optimization. These weights when applied to the sample will yield a sample whose covariate means are equal (within a specified tolerance) to given target values.
