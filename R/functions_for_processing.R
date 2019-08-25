@@ -11,7 +11,7 @@ process.focal.and.estimand <- function(focal, estimand, targets, treat, treat.ty
                continuous = "ATE")
 
     if (estimand_ %nin% AE[[treat.type]]) {
-      stop(paste0("\"", estimand, "\" is not an allowable estimand with ", treat.type, " treatments. Only ", word.list(AE[[treat.type]], quotes = TRUE, and.or = "and", is.are = TRUE),
+      stop(paste0("\"", estimand, "\" is not an allowable estimand with ", treat.type, " treatments. Only ", word_list(AE[[treat.type]], quotes = TRUE, and.or = "and", is.are = TRUE),
                   " allowed."), call. = FALSE)
     }
 
@@ -26,7 +26,7 @@ process.focal.and.estimand <- function(focal, estimand, targets, treat, treat.ty
 
   #Check focal
   if (treat.type %in% c("binary", "multinomial")) {
-    if (is_null(estimand)) {
+    if (is_null(estimand)) { #Targets were supplied
       if (is_not_null(focal)) {
         warning(paste("Only estimand = \"ATT\" is compatible with focal. Ignoring focal."), call. = FALSE)
         focal <- NULL
@@ -44,8 +44,8 @@ process.focal.and.estimand <- function(focal, estimand, targets, treat, treat.ty
     }
     else {
       if (is_not_null(focal)) {
-        warning(paste(estimand_, "is not compatible with focal. Ignoring focal."), call. = FALSE)
-        focal <- NULL
+        warning(paste(estimand_, "is not compatible with focal. Setting estimand to \"ATT\"."), call. = FALSE)
+        estimand_ <- "ATT"
       }
     }
   }
