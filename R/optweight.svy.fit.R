@@ -1,245 +1,191 @@
-optweight.svy.fit <- function(covs, tols = 0, targets, s.weights = NULL, norm = "l2", std.binary = FALSE, std.cont = TRUE, min.w = 1E-8, verbose = FALSE, ...) {
-  args <- list(...)
+#' Fitting Function for Optweight for Survey Weights
+#'
+#' `optweight.svy.fit()` performs the optimization for [optweight.svy()] and should, in most cases, not be
+#' used directly. Little processing of inputs is performed, so they must be given
+#' exactly as described below.
+#'
+#' @inheritParams optweight.fit
+#' @param covs a numeric matrix of covariates to be targeted.
+#' @param tols a vector of target balance tolerance values. Default is 0.
+#' @param targets a vector of target population mean values for each covariate.
+#' The resulting weights will yield sample means within `tols` units of
+#' the target values for each covariate. If any target values are `NA`,
+#' the corresponding variable will not be targeted and its weighted mean will
+#' be wherever the weights yield the smallest variance. To ensure the weighted
+#' mean for a covariate is equal to its unweighted mean (i.e., so that its
+#' original mean is its target mean), its original mean must be supplied as a
+#' target.
+#' @param norm `character`; a string containing the name of the norm corresponding to the objective function to minimize. Allowable options include `"l1"` for the L1 norm, `"l2"` for the L2 norm (the default), `"linf"` for the L\eqn{\infty} norm, `"entropy"` for the negative entropy, and `"log"` for the sum of the negative logs. See Details at [optweight.fit()] for more information.
+#' @param solver string; the name of the optimization solver to use. Allowable options depend on `norm`. Default is to use whichever eligible solver is installed, if any, or the default solver for the corresponding `norm`. See Details at [optweight.fit()] for information.
+#'
+#' @returns
+#' An `optweight.svy.fit` object with the following elements:
+#' \item{w}{The estimated weights, one for each unit.}
+#' \item{duals}{A data.frame containing the dual variables for each covariate. See Zubizarreta
+#' (2015) for interpretation of these values.}
+#' \item{info}{A list containing information about the performance of the optimization at termination.}
+#'
+#' @details
+#' `optweight.svy.fit()` transforms the inputs into the required inputs for the optimization functions, which are (sparse) matrices and vectors, and then supplies the outputs (the weights, dual variables, and convergence information) back to [optweight.svy()]. Little processing of inputs is performed, as this is normally handled by `optweight.svy()`.
+#'
+#' Target constraints are applied to the product of the estimated weights and the sampling weights. In addition, sum of the product of the estimated weights and the sampling weights is constrained to be equal to the sum of the product of the base weights and sampling weights.
+#'
+#' @seealso
+#' [optweight.svy()] which you should use for estimating the
+#' balancing weights, unless you know better.
+#'
+#' [optweight.fit()] for more details about the allowed norms and optimization.
+#'
+#' @references
+#' Zubizarreta, J. R. (2015). Stable Weights that Balance Covariates for Estimation With Incomplete Outcome Data. *Journal of the American Statistical Association*, 110(511), 910–922. \doi{10.1080/01621459.2015.1023805}
+#'
+#' @examplesIf requireNamespace("cobalt", quietly = TRUE)
+#' library("cobalt")
+#' data("lalonde", package = "cobalt")
+#'
+#' covs <- splitfactor(lalonde[c("age", "educ", "race",
+#'                               "married", "nodegree")],
+#'                     drop.first = FALSE)
+#'
+#' targets <- c(23, 9, .3, .3, .4, .2, .5)
+#'
+#' ows.fit <- optweight.svy.fit(covs,
+#'                              targets = targets,
+#'                              norm = "l2")
+#'
+#' #Unweighted means
+#' col_w_mean(covs)
+#'
+#' #Weighted means; same as targets
+#' col_w_mean(covs, w = ows.fit$w)
 
-  #Process args
-  args[names(args) %nin% names(formals(osqpSettings))] <- NULL
-  if (is_null(args[["max_iter"]])) args[["max_iter"]] <- 2E5L
-  if (is_null(args[["eps_abs"]])) args[["eps_abs"]] <- 1E-8
-  if (is_null(args[["eps_rel"]])) args[["eps_rel"]] <- 1E-8
-  args[["verbose"]] <- verbose
+#' @export
+optweight.svy.fit <- function(covs, targets, tols = 0, s.weights = NULL, b.weights = NULL,
+                              norm = "l2", std.binary = FALSE, std.cont = TRUE,
+                              min.w = 1e-8, verbose = FALSE, solver = NULL, ...) {
 
-  key.args <- c("covs", "targets")
-  missing.args <- setNames(rep(FALSE, length(key.args)), key.args)
-  for (arg in key.args) {
-    if (eval(substitute(missing(q), list(q = arg))) || is_null(get(arg))) {
-      missing.args[arg] <- TRUE
-    }
+  chk::chk_not_missing(covs, "`covs`")
+  chk::chk_not_missing(targets, "`targets`")
+
+  if (!is.numeric(covs) && (!is.data.frame(covs) || !all(apply(covs, 2L, is.numeric)))) {
+    .err("all covariates must be numeric")
   }
-  if (any(missing.args)) stop(paste(word_list(names(missing.args)[missing.args]), "must be supplied."), call. = FALSE)
 
-  if (!all(apply(covs, 2, is.numeric))) stop("All covariates must be numeric.", call. = FALSE)
   covs <- as.matrix(covs)
 
-  if (length(tols) == 1) tols <- rep(tols, ncol(covs))
-
   N <- nrow(covs)
-  if (is_null(s.weights)) sw <- rep(1, N)
-  else sw <- s.weights
 
-  norm.options <- c("l2", "l1", "linf")
-  if (length(norm) != 1 || !is.character(norm) || tolower(norm) %nin% norm.options) {
-    stop(paste0("norm must be ", word_list(norm.options, and.or = "or", quotes = TRUE), "."), call. = FALSE)
+  if (is_null(s.weights)) {
+    sw <- rep.int(1, N)
   }
-  else norm <- tolower(norm)
+  else {
+    chk::chk_numeric(s.weights)
+    chk::chk_length(s.weights, N)
 
-  if (length(min.w) != 1 || !is.numeric(min.w) || min.w < 0 || min.w >= 1) stop("min.w must be a single number in the interval [0, 1).", call. = FALSE)
-
-  if (!is.atomic(targets) || (!all(is.na(targets)) && !is.numeric(targets))) stop("targets must be a vector of target values for each baseline covariate.", call. = FALSE)
-
-  if (length(targets) != ncol(covs)) {
-    stop("targets must have the same number of values as there are covariates.", call. = FALSE)
+    sw <- s.weights
   }
 
-  sds <- sqrt(col.w.v(covs, w = sw))
+  if (is_null(b.weights)) {
+    bw <- rep.int(1, N)
+  }
+  else {
+    chk::chk_numeric(b.weights)
+    chk::chk_length(b.weights, N)
+
+    bw <- b.weights
+  }
+
+  #Process targets
+  if (!inherits(tols, "optweight.targets")) {
+    targets <- .process_targets_internal(covs, targets = targets, sw = sw,
+                                         targets_found_in = "covs")
+  }
+
+  #Process tols
+  if (!inherits(tols, "optweight.tols") || is_null(attr(tols, "internal.tols"))) {
+    tols <- .process_tols_internal(covs, tols, tols_found_in = "covs")
+  }
+
+  tols <- tols |>
+    attr("internal.tols") |>
+    abs()
+
+  chk::chk_string(norm)
+  norm <- tolower(norm)
+  chk::chk_subset(norm, allowable_norms())
+
+  if (norm == "linf" && !all_the_same(sw)) {
+    .err('sampling weights cannot be used when `norm = "linf"`')
+  }
+
+  chk::chk_number(min.w)
+  chk::chk_lt(min.w, mean(bw))
+
+  if (norm %in% c("entropy", "log")) {
+    if (any(bw <= 0)) {
+      .err(sprintf("all base weights must be positive when `norm = %s`",
+                   add_quotes(norm)))
+    }
+
+    min.w <- max(min.w, .Machine$double.eps)
+  }
+
+  solver <- process_solver(solver, norm, min.w)
+
+  args <- make_process_opt_args(solver)(..., verbose = verbose)
+
+  constraint_df <- expand.grid(time = 1L,
+                               type = c("range_w", "mean_w", "target"),
+                               constraint = list(NULL),
+                               stringsAsFactors = FALSE,
+                               KEEP.OUT.ATTRS = FALSE)
+
+  range_cons <- constraint_range_w(sw, min.w)
+
+  bin.covs <- is_binary_col(covs)
+
+  n <- sum(sw * bw)
+
+  sds <- sqrt(col.w.v(covs, w = sw, bin.vars = bin.covs))
 
   targeted <- !is.na(targets)
 
-  #tols
-  if (std.binary && std.cont) vars.to.standardize <- rep(TRUE, length(tols))
-  else if (!std.binary && std.cont) vars.to.standardize <- !apply(covs, 2, is_binary)
-  else if (std.binary && !std.cont) vars.to.standardize <- apply(covs, 2, is_binary)
-  else vars.to.standardize <- rep(FALSE, length(tols))
+  vars.to.standardize <- rep_with(FALSE, tols)
+  if (std.binary) vars.to.standardize[bin.covs] <- TRUE
+  if (std.cont) vars.to.standardize[!bin.covs] <- TRUE
 
-  tols <- ifelse(vars.to.standardize,
-                 abs(tols*sds), #standardize
-                 abs(tols))
-  #Note: duals work incorrecly unless tols are > 0, so replace small tols with
-  #sqrt(.Machine$double.eps).
-  tols <- ifelse(tols < sqrt(.Machine$double.eps),
-                 sqrt(.Machine$double.eps),
-                 tols)
+  to_std <- which(vars.to.standardize & targeted & !is.na(sds) & !check_if_zero(sds))
 
-  if (norm == "l2") {
-    #Minimizing variance of weights
-    P = sparseMatrix(1:N, 1:N, x = 2*(sw^2)/N)
-    q = -sw/N #ensures objective function value is variance of weights
-
-    #Mean of weights  must equal 1
-    E1 = matrix(sw/N, nrow = 1)
-    F1l = 1
-    F1u = F1l
-
-    #All weights must be >= min; focal weights must be 1, weights where sw = 0 must be 0
-    min <- min.w
-    G1 = sparseMatrix(1:N, 1:N, x = 1)
-    H1l <- rep(min, N)
-    H1u <- ifelse(check_if_zero(sw), min, Inf)
-
-    #Targeting constraints
-    if (any(targeted)) {
-      G2 = t(covs[, targeted, drop = FALSE] * sw / N)
-      H2l = targets[targeted] - tols[targeted]
-      H2u = targets[targeted] + tols[targeted]
-    }
-    else {
-      G2 <- H2l <- H2u <- NULL
-    }
-
-    A  <- rbind(G1, E1, G2)
-    lower <- c(H1l, F1l, H2l)
-    upper <- c(H1u, F1u, H2u)
-
-    out <- solve_osqp(P = P, q = q, A = A, l = lower, u = upper,
-                             pars = do.call(osqpSettings, args))
-
-    #Get dual vars for balance and target constraints
-    G2.indices <- if (is_null(G2)) NULL else (NROW(G1)+NROW(E1)+1):(NROW(G1)+NROW(E1)+NROW(G2))
-
-    w <- out$x
-  }
-  else if (norm == "l1") {
-    #Minimizing mean absolute deviation of weights
-    P = sparseMatrix(NULL, NULL, dims = c(2*N, 2*N))
-    q = c(rep(0, N), 2*sw/N)
-
-    #Mean of weights must equal 1
-    E1 = matrix(sw/N, nrow = 1)
-    F1l = 1
-    F1u = F1l
-
-    #All weights must be >= min; focal weights must be 1, weights where sw = 0 must be 0
-    #Auxilliary vars must be >= 0
-    G1 = sparseMatrix(1:(2*N), 1:(2*N), x = 1)
-    H1l <- rep(min.w, N)
-    H1u <- ifelse(check_if_zero(sw), min.w, Inf)
-    H1lz <- c(H1l, rep(0, N))
-    H1uz <- c(H1u, rep(Inf, N))
-
-    #Targeting constraints
-    if (any(targeted)) {
-      G2 = t(covs[, targeted, drop = FALSE] * sw / N)
-      H2l = targets[targeted] - tols[targeted]
-      H2u = targets[targeted] + tols[targeted]
-    }
-    else {
-      G2 <- H2l <- H2u <- NULL
-    }
-
-    #Conversion constraints
-    Inxn = sparseMatrix(1:N, 1:N, x = 1)
-    I = rbind(cbind(Inxn, -Inxn),
-              cbind(-Inxn, -Inxn))
-    jl = rep(-Inf, 2*N)
-    ju = rep(1, 2*N)
-
-    A  <- rbind(E1, G2)
-    lower <- c(F1l, H2l)
-    upper <- c(F1u, H2u)
-
-    Au <- cbind(A, matrix(0, nrow = nrow(A), ncol = N))
-
-    Az <- rbind(Au, G1, I)
-    lowerz = c(lower, H1lz, jl)
-    upperz = c(upper, H1uz, ju)
-
-    out <- solve_osqp(P = P, q = q, A = Az, l = lowerz, u = upperz,
-                             pars = do.call(osqpSettings, args))
-
-    w <- out$x[1:N]
-
-    #Get dual vars for constraints
-    G2.indices <- if (is_null(G2)) NULL else (NROW(E1)+1):(NROW(E1)+NROW(G2))
-
-  }
-  else if (norm == "linf") {
-    #Minimizing largest weight
-    P = sparseMatrix(NULL, NULL, dims = c(2*N, 2*N))
-    q = rep(sw/N, 2)
-
-    #Mean of weights must equal 1
-    E1 = matrix(sw/N, nrow = 1)
-    F1l = 1
-    F1u = F1l
-
-    #All weights must be >= min; focal weights must be 1, weights where sw = 0 must be 0
-    #Auxilliary var must be >= 0
-    min <- min.w
-    G1 = sparseMatrix(1:(2*N), 1:(2*N), x = 1)
-    H1l = rep(min, N)
-    H1u = ifelse(check_if_zero(sw), min, Inf)
-    H1lz = c(H1l, rep(0, N))
-    H1uz = c(H1u, rep(Inf, N))
-
-    #Targeting constraints
-    if (any(targeted)) {
-      G2 = t(covs[, targeted, drop = FALSE] * sw / N)
-      H2l = targets[targeted] - tols[targeted]
-      H2u = targets[targeted] + tols[targeted]
-    }
-    else {
-      G2 <- H2l <- H2u <- NULL
-    }
-
-    #Conversion constraints
-    Inxn = sparseMatrix(1:N, 1:N, x = 1)
-    I = rbind(cbind(Inxn, -Inxn),
-              cbind(-Inxn, -Inxn))
-    jl = rep(-Inf, 2*N)
-    ju = rep(1, 2*N)
-
-    I2 = cbind(sparseMatrix(NULL, NULL, dims = c(N-1, N)),
-               matrix(1, ncol = 1, nrow = N-1),
-               sparseMatrix(1:(N-1), 1:(N-1), x = -1))
-    j2l = rep(0, N-1)
-    j2u = rep(0, N-1)
-
-    I = rbind(I, I2)
-    jl = c(jl, j2l)
-    ju = c(ju, j2u)
-
-    A = rbind(E1, G2)
-    lower = c(F1l, H2l)
-    upper = c(F1u, H2u)
-
-    Au = cbind(A, matrix(0, nrow = NROW(A), ncol = ncol(A)))
-
-    Az = rbind(Au, G1, I)
-    lowerz = c(lower, H1lz, jl)
-    upperz = c(upper, H1uz, ju)
-
-    out <- solve_osqp(P = P, q = q, A = Az, l = lowerz, u = upperz,
-                             pars = do.call(osqpSettings, args))
-
-    w <- out$x[1:N]
-
-    #Get dual vars for constraints
-    G2.indices <- if (is_null(G2)) NULL else (NROW(E1)+1):(NROW(E1)+NROW(G2))
+  if (is_not_null(to_std)) {
+    covs[, to_std] <- mat_div(covs[, to_std, drop = FALSE], sds[to_std])
+    targets[to_std] <- targets[to_std] / sds[to_std]
   }
 
-  w[w < min.w] <- min.w
+  constraint_df[["constraint"]] <- list(
+    range_w = range_cons,
+    mean_w = constraint_mean_w_svy(sw, n),
+    target = constraint_target_svy(covs, sw, targets, targeted, tols, n)
+  )
 
-  #Duals
-  target_duals <- abs(out$y[G2.indices]) #G2
+  constraint_df <- constraint_df |>
+    prep_constraint_df(norm, bw, sw) |>
+    prep_constraint_df_for_solver(solver)
 
-  if (is_not_null(target_duals)) {
+  objective <- prep_objective(norm, bw, sw)
 
-    targeted.covs <- colnames(covs)[targeted]
-    if (length(targeted.covs) > 0) {
-      td <- data.frame(expand.grid(constraint = "target",
-                                   cov = targeted.covs,
-                                   stringsAsFactors = FALSE),
-                       dual = target_duals[1:length(targeted.covs)]
-      )
-    }
-    else td <- NULL
+  opt_out <- opt_fit(constraint_df, objective, args, N,
+                     solver = solver)
 
-  }
-  else td <- NULL
+  w <- extract_weights(opt_out, N, min.w, range_cons)
 
-  opt_out <- list(w = w,
-                  duals = td,
-                  info = out$info)
-  class(opt_out) <- "optweight.svy.fit"
+  duals <- extract_duals(constraint_df, opt_out$dual_out)
 
-  return(opt_out)
+  out <- list(w = w,
+              duals = duals[[1L]],
+              info = opt_out$info_out,
+              out = opt_out$out)
+
+  class(out) <- "optweight.svy.fit"
+
+  out
 }

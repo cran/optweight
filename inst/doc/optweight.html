@@ -1,0 +1,1724 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Noah Greifer" />
+
+<meta name="date" content="2025-09-08" />
+
+<title>Using optweight to Estimate Stable Balancing Weights</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">
+
+div.csl-bib-body { }
+div.csl-entry {
+clear: both;
+margin-bottom: 0em;
+}
+.hanging div.csl-entry {
+margin-left:2em;
+text-indent:-2em;
+}
+div.csl-left-margin {
+min-width:2em;
+float:left;
+}
+div.csl-right-inline {
+margin-left:2em;
+padding-left:1em;
+}
+div.csl-indent {
+margin-left: 2em;
+}
+</style>
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Using optweight to Estimate Stable
+Balancing Weights</h1>
+<h4 class="author">Noah Greifer</h4>
+<h4 class="date">2025-09-08</h4>
+
+
+
+<style>
+pre {
+overflow-x: auto;
+}
+pre code {
+word-wrap: normal;
+white-space: pre;
+}
+</style>
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p><em>optweight</em> implements stable balancing weighting (SBW) as
+described by <span class="citation">Zubizarreta (<a href="#ref-zubizarretaStableWeightsThat2015">2015</a>)</span>. This
+involves estimating weights aimed at adjusting for confounding by
+balancing covariates while minimizing some measure of variability of the
+weights. SBW is also known as empirical balancing calibration weighting
+<span class="citation">(<a href="#ref-chanGloballyEfficientNonparametric2016">Chan, Yam, and Zhang
+2016</a>)</span> and entropy balancing <span class="citation">(<a href="#ref-kallbergLargeSampleProperties2023">Källberg and Waernbaum
+2023</a>)</span>. These methods are related to inverse probability
+weighting (IPW), and there are some equivalences between SBW and IPW
+<span class="citation">(<a href="#ref-wangMinimalDispersionApproximately2020">Wang and Zubizarreta
+2020</a>)</span>. While IPW typically involves fitting a propensity
+score model for the probability of receiving treatment, SBW estimates
+weights directly that balance the covariates. The distinction between
+these two approaches is described in detail by <span class="citation">Chattopadhyay, Hase, and Zubizarreta (<a href="#ref-chattopadhyayBalancingVsModeling2020">2020</a>)</span>.</p>
+<p>SBW involves solving the following optimization problem:</p>
+<span class="math display">\[\begin{align}
+\min_{\mathbf{w}} \quad &amp; f(\mathbf{w}, \mathbf{b},\mathbf{s}) \\
+\text{s.t.} \quad &amp; \sum_{i:A_i=a} {s_i w_i} = \sum_{i:A_i=a} {s_i
+b_i} \quad \forall a \in \mathcal{A} \\
+&amp; \left| \frac{\sum_{i:A_i=a} {s_i w_i x_{k,i}}}{\sum_{i:A_i=a} {s_i
+w_i}} - \bar{x}_k^* \right| \le \delta_k \quad \forall a \in
+\mathcal{A}, \forall k \in \{1, \dots, K\} \\
+&amp; w_i &gt; \varepsilon \quad \forall i
+\end{align}\]</span>
+<p>where <span class="math inline">\(\mathbf{w}=\{w_1, \dots,
+w_N\}\)</span> are the estimated weights, <span class="math inline">\(\mathbf{s}=\{s_1, \dots, s_N\}\)</span> are
+sampling weights, <span class="math inline">\(\mathbf{b}=\{b_1, \dots,
+b_N\}\)</span> are “base” weights, <span class="math inline">\(A_i\)</span> is a categorical treatment taking on
+values <span class="math inline">\(a \in \mathcal{A}\)</span>, <span class="math inline">\(x_{k,i}\)</span> and is the value of covariate
+<span class="math inline">\(\mathbf{x}_k\)</span> for unit <span class="math inline">\(i\)</span>. <span class="math inline">\(f(\mathbf{w}, \mathbf{b},\mathbf{s})\)</span> is
+the objective function to minimize, a function of the estimated weights,
+base weights, and sampling weights. <span class="math inline">\(\delta_k\)</span> is the balance tolerance for
+covariate <span class="math inline">\(k\)</span>, <span class="math inline">\(\bar{x}_k^*\)</span> is the target value for
+covariate <span class="math inline">\(k\)</span>, and <span class="math inline">\(\varepsilon\)</span> is the minimum weight
+allowed.</p>
+<p>Generally, <span class="math inline">\(f\)</span> represents a
+measure of dispersion from the base weights, weighted by the sampling
+weights. The original formula of SBW used <span class="math inline">\(f(\mathbf{w}, \mathbf{b},\mathbf{s}) =
+\frac{1}{N}\sum_i{s_i(w_i-b_i)^2}\)</span>, the weighted L2 norm.
+Entropy balancing uses <span class="math inline">\(f(\mathbf{w},
+\mathbf{b},\mathbf{s}) = \sum_i{s_i w_i
+\log\left(\frac{w_i}{b_i}\right)}\)</span>, the weighted relative
+entropy between the estimated and base weights.</p>
+<p>The interpretation of these constraints is as follows:</p>
+<ul>
+<li><p>The first constraint is a scaling constraint that establishes a
+meaningful scale for the weights. In particular, that scale is
+determined by the base weights.</p></li>
+<li><p>The second constraint is the balance constraint. A target value
+can be chosen for each covariate, and the weighted mean of the
+covariates in each treatment group must be within some tolerance of that
+target. That also guarantees the weighted means between treatment groups
+are within some tolerance of each other. It is possible to forgo a
+specific target and just require the weighted means to be equal to each
+other.</p></li>
+<li><p>The final constraint is optional and restricts the minimum value
+of the weights. For some <span class="math inline">\(f\)</span>, the
+weights can be unbounded, and it is up to the user to require the
+weights to fall within some range. The original formulation of SBW used
+<span class="math inline">\(\varepsilon = 0\)</span>, but omitting this
+constraint altogether, which allows the weights to be negative, is also
+possible.</p></li>
+</ul>
+<p>Asymptotic properties of SBW are described in <span class="citation">Wang and Zubizarreta (<a href="#ref-wangMinimalDispersionApproximately2020">2020</a>)</span>. In
+general, the weights are precise and perform well, and adding
+approximate balance constraints (i.e., using <span class="math inline">\(\delta_k&gt;0\)</span>) tends to improve precision
+without greatly affecting bias. There is also a weak double-robustness
+property to the weights: the estimate is consistent if either the
+outcome model corresponds to the balance constraints or the implicit
+propensity score model corresponds to the true propensity score model.
+Different forms of <span class="math inline">\(f\)</span> imply
+different assumptions about the propensity score model. Allowing <span class="math inline">\(\varepsilon\)</span> to be negative allows for the
+possibility of negative weights, which can improve precision but induce
+extrapolation. It turns out that using a linear regression model for the
+outcome is equivalent to using SBW with the L2 norm, <span class="math inline">\(\delta_k=0\)</span>, and <span class="math inline">\(\varepsilon=-\infty\)</span> <span class="citation">(<a href="#ref-chattopadhyayImpliedWeightsLinear2023">Chattopadhyay and
+Zubizarreta 2023</a>)</span>.</p>
+<p>Often <span class="math inline">\(\bar{x}_k^*\)</span> are chosen to
+represent a known target group, like the full sample when targeting the
+ATE or the treated group when targeting the ATT. They can also be chosen
+to generalize the effect estimate to an arbitrary target population
+<span class="citation">(<a href="#ref-chattopadhyayOneStepWeightingGeneralize2024">Chattopadhyay,
+Cohn, and Zubizarreta 2024</a>)</span>.</p>
+<p>SBWs can be generalized to continuous treatments, in which case
+instead of balancing the covariate means, the treatment-covariate
+covariances are constrained to be balanced. This was explored in <span class="citation">Greifer (<a href="#ref-greiferEstimatingBalancingWeights2020">2020</a>)</span>,
+<span class="citation">Tübbicke (<a href="#ref-tubbickeEntropyBalancingContinuous2022">2022</a>)</span>, and
+<span class="citation">Vegetabile et al. (<a href="#ref-vegetabileNonparametricEstimationPopulation2021">2021</a>)</span>.
+SBW can also be used to directly weight a sample to resemble a
+population, without needing to balance two treatment groups. This also
+known known as matching-adjusted indirect comparison [MAIC; <span class="citation">Phillippo et al. (<a href="#ref-phillippoEquivalenceEntropyBalancing2020">2020</a>)</span>,
+<span class="citation">Signorovitch et al. (<a href="#ref-signorovitchComparativeEffectivenessHeadtoHead2010">2010</a>)</span>].</p>
+<p><em>optweight</em> contains functionality to perform these operations
+and assess their performance. It was designed to be user-friendly,
+compatible with the syntax used with <em>WeightIt</em>, and supported by
+<em>cobalt</em> for balance assessment, at the possible expense of some
+flexibility. The <em>sbw</em> package also implements some of these
+methods, prioritizing different aspects of the estimation. Entropy
+balancing is implemented in <em>WeightIt</em>, which also calls
+<em>optweight</em> to provide a simpler interface to SBW.</p>
+</div>
+<div id="using-optweight" class="section level2">
+<h2>Using <em>optweight</em></h2>
+<p>The main function in <em>optweight</em> is <code>optweight()</code>,
+which uses a formula interface to specify the treatment, covariates, and
+balance tolerance. Other functions in <em>optweight</em> simplify
+specification of more detailed parameters and support diagnostics.</p>
+<p>Below, we’ll use <code>optweight()</code> to estimate weights that
+balance the covariates in an observational study. We’ll use the
+<code>lalonde</code> dataset in <em>cobalt</em> and target the ATT
+first. The treatment is <code>treat</code>, the outcome is
+<code>re78</code>, and the other variables are the covariates to
+balance.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(optweight)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">data</span>(<span class="st">&quot;lalonde&quot;</span>, <span class="at">package =</span> <span class="st">&quot;cobalt&quot;</span>)</span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">head</span>(lalonde)</span></code></pre></div>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="right">treat</th>
+<th align="right">age</th>
+<th align="right">educ</th>
+<th align="left">race</th>
+<th align="right">married</th>
+<th align="right">nodegree</th>
+<th align="right">re74</th>
+<th align="right">re75</th>
+<th align="right">re78</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">37</td>
+<td align="right">11</td>
+<td align="left">black</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">9930.0</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">22</td>
+<td align="right">9</td>
+<td align="left">hispan</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">3595.9</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">30</td>
+<td align="right">12</td>
+<td align="left">black</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">24909.5</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">27</td>
+<td align="right">11</td>
+<td align="left">black</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">7506.1</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">33</td>
+<td align="right">8</td>
+<td align="left">black</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">289.8</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">22</td>
+<td align="right">9</td>
+<td align="left">black</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">4056.5</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code>optweight()</code> can be used simply by supplying the
+treatment can covariates to the <code>formula</code> argument, the
+dataset to the <code>data</code> argument, and the estimand to the
+<code>estimand</code> argument (here, the ATT). By default,
+<code>optweight()</code> minimizes the L2 norm, requires exact mean
+balance on the covariates, and requires all weights to be greater than
+<span class="math inline">\(10^{-8}\)</span>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>ow <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>                  re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>ow</span></code></pre></div>
+<pre><code>## An optweight object
+##  - number of obs.: 614
+##  - norm minimized: &quot;l2&quot;
+##  - sampling weights: present
+##  - base weights: present
+##  - treatment: 2-category
+##  - estimand: ATT (focal: 1)
+##  - covariates: age, educ, race, married, nodegree, re74, re75</code></pre>
+<p>Using <code>cobalt::bal.tab()</code> on the output computes the
+weighted balance statistics.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(ow)</span></code></pre></div>
+<pre><code>## Balance Measures
+##                Type Diff.Adj
+## age         Contin.       -0
+## educ        Contin.       -0
+## race_black   Binary       -0
+## race_hispan  Binary        0
+## race_white   Binary        0
+## married      Binary       -0
+## nodegree     Binary       -0
+## re74        Contin.       -0
+## re75        Contin.       -0
+## 
+## Effective sample sizes
+##            Control Treated
+## Unadjusted   429.      185
+## Adjusted     108.6     185</code></pre>
+<p>As expected, all mean differences are exactly 0 in the weighted
+sample. We can use <code>summary()</code> to examine some properties of
+the weights:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">summary</span>(ow)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+## - Weight ranges:
+##         Min                                 Max
+## treated   1      ||                       1.   
+## control   0 |---------------------------| 6.002
+## 
+## - Units with 5 greatest weights by group:
+##                                            
+##               1      2      3      4      5
+##  treated      1      1      1      1      1
+##             423    388    226    196    118
+##  control 5.5685 5.6016 5.6698 5.9221 6.0023
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.       0.         0
+## control 1.717 1.339 5.002    1.23       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted   429.      185
+## Weighted     108.6     185</code></pre>
+<p><code>summary()</code> produces some information about the
+distribution of weights, including different measures of the dispersion
+of the weights, each of which corresponds to one of the allowed
+objective functions to minimize. <code>RMSE Dev</code> is the root mean
+squared deviation of the estimated weights from the base weights (here,
+the base weights are all 1). See <code>?summary.optweight</code> for
+more information about the other statistics. Lastly,
+<code>summary()</code> produces the weighted and original (effective)
+samples sizes.</p>
+<p>We can use <code>plot()</code> on the <code>summary()</code> output
+to visualize the distribution of the weights:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">summary</span>(ow) <span class="sc">|&gt;</span> <span class="fu">plot</span>()</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Because we targeted the ATT, only the weights for the control group
+are displayed (the treated group weights are all 1).</p>
+<p>Below, we’ll adjust a few of the argument to see what affects they
+have on the weights.</p>
+<div id="tols" class="section level3">
+<h3><code>tols</code></h3>
+<p>The balance tolerance is controlled by the <code>tols</code>
+argument. This can either be a single value applied to all variables or
+a vector with a value for each covariate. By default,
+<code>tols = 0</code>. Let’s see what happens when we increase
+<code>tols</code> to .02.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>ow2 <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>                   re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>                 <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>                 <span class="at">tols =</span> .<span class="dv">02</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(ow2)</span></code></pre></div>
+<pre><code>## Balance Measures
+##                Type Diff.Adj
+## age         Contin.     0.02
+## educ        Contin.     0.02
+## race_black   Binary     0.02
+## race_hispan  Binary     0.00
+## race_white   Binary    -0.02
+## married      Binary    -0.02
+## nodegree     Binary     0.02
+## re74        Contin.    -0.02
+## re75        Contin.     0.02
+## 
+## Effective sample sizes
+##            Control Treated
+## Unadjusted   429.      185
+## Adjusted     118.8     185</code></pre>
+<p>Now, all mean differences are less than .02. Note that by default,
+<code>cobalt::bal.tab()</code> reports standardized mean differences for
+continuous variables and raw mean differences for binary variables.
+<code>optweight()</code> standardizes the balance tolerances the same
+way: by default, <code>tols</code> refers to the largest standardized
+mean difference allowed for continuous variables and the largest raw
+mean difference for binary variables. To change whether tolerances for
+binary or continuous variables should be in standardized units or not,
+see the <code>std.binary</code> and <code>std.cont</code> arguments of
+<code>optweight.fit()</code>, which <code>optweight()</code> calls under
+the hood.</p>
+<p>Allowing for more relaxed imbalance also increases the ESS. The RMSE
+deviation has shrunk correspondingly:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">summary</span>(ow2, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.      0.          0
+## control 1.616 1.267 4.212   1.118       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted   429.      185
+## Weighted     118.8     185</code></pre>
+<p>To supply each covariate with its own tolerance, a named vector must
+be supplied. This can sometimes be a little tedious, so there is a
+helper function, <code>process_tols()</code>, that simplifies this. Give
+<code>process_tols()</code> the formula and dataset (and, optionally, an
+initial tolerance or vector), and it will return a modifiable vector of
+balance tolerances that can be supplied to <code>optweight()</code>.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>tols <span class="ot">&lt;-</span> <span class="fu">process_tols</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>                       re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>                     <span class="at">tols =</span> .<span class="dv">02</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>tols</span></code></pre></div>
+<pre><code>## - tols:
+##      age     educ     race  married nodegree     re74     re75 
+##     0.02     0.02     0.02     0.02     0.02     0.02     0.02</code></pre>
+<p>Here, we’ll relax the constraint on <code>race</code> and then
+estimate the weights.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>tols[<span class="st">&quot;race&quot;</span>] <span class="ot">&lt;-</span> .<span class="dv">07</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>tols</span></code></pre></div>
+<pre><code>## - tols:
+##      age     educ     race  married nodegree     re74     re75 
+##     0.02     0.02     0.07     0.02     0.02     0.02     0.02</code></pre>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a>ow3 <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a>                   re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a>                 <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a>                 <span class="at">tols =</span> tols)</span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(ow3)</span></code></pre></div>
+<pre><code>## Balance Measures
+##                Type Diff.Adj
+## age         Contin.     0.02
+## educ        Contin.     0.02
+## race_black   Binary     0.07
+## race_hispan  Binary     0.00
+## race_white   Binary    -0.07
+## married      Binary    -0.02
+## nodegree     Binary     0.02
+## re74        Contin.    -0.02
+## re75        Contin.     0.02
+## 
+## Effective sample sizes
+##            Control Treated
+## Unadjusted   429.      185
+## Adjusted     132.7     185</code></pre>
+<p>We can see that for all covariates other than <code>race</code>, the
+mean differences are at or below .02, but for <code>race</code>, the
+mean differences are at or below .07. This led to an increase in ESS due
+to the relaxed constraints.</p>
+</div>
+<div id="norm" class="section level3">
+<h3><code>norm</code></h3>
+<p>The <code>norm</code> argument controls which objective function is
+used. The allowable arguments are <code>&quot;l2&quot;</code> for the L2 norm (the
+default), <code>&quot;l1&quot;</code> for the L1 norm, <code>&quot;linf&quot;</code> for the
+L<span class="math inline">\(\infty\)</span> norm,
+<code>&quot;entropy&quot;</code> for the relative entropy, and <code>&quot;log&quot;</code>
+for the sum of the negative logs. The most thorough theoretical work has
+been done on the L2 norm and relative entropy, and these tend to be the
+easiest to optimize.</p>
+<p>Weighting by minimizing the relative entropy is also known as
+“entropy balancing” <span class="citation">(<a href="#ref-hainmuellerEntropyBalancingCausal2012">Hainmueller 2012</a>;
+<a href="#ref-kallbergLargeSampleProperties2023">Källberg and Waernbaum
+2023</a>; <a href="#ref-zhaoEntropyBalancingDoubly2017">Zhao and
+Percival 2017</a>)</span> and is available in <em>WeightIt</em>, which
+uses a more parsimonious representation of the problem. Weighting by
+minimizing the sum of negative logs is equivalent to nonparametric
+covariate balancing propensity score (npCBPS) weighting <span class="citation">(<a href="#ref-fongCovariateBalancingPropensity2018">Fong, Hazlett, and Imai
+2018</a>)</span>, which maximizes the empirical likelihood of the data
+to estimate the weights. A penalized version of npCBPS is available in
+<em>CBPS</em> and in <em>WeightIt</em> (which calls functions from
+<em>CBPS</em>), but <em>optweight</em> offers additional options not
+possible in those packages, such as specifying balance tolerances,
+targets, and different estimands.</p>
+<p>Different solvers are available for each norm; see
+<code>?optweight.fit()</code> for details.</p>
+<p>Below, we’ll minimize the L2 norm, L1 norm, L<span class="math inline">\(\infty\)</span> norm, and relative entropy and see
+how those choices affect the properties of the weights.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a><span class="co"># L2 norm</span></span>
+<span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>ow_l2 <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>                     re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb19-4"><a href="#cb19-4" tabindex="-1"></a>                   <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" tabindex="-1"></a>                   <span class="at">norm =</span> <span class="st">&quot;l2&quot;</span>)</span>
+<span id="cb19-6"><a href="#cb19-6" tabindex="-1"></a></span>
+<span id="cb19-7"><a href="#cb19-7" tabindex="-1"></a><span class="fu">summary</span>(ow_l2, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.       0.         0
+## control 1.717 1.339 5.002    1.23       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted   429.      185
+## Weighted     108.6     185</code></pre>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a><span class="co"># L1 norm</span></span>
+<span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>ow_l1 <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>                     re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb21-4"><a href="#cb21-4" tabindex="-1"></a>                   <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb21-5"><a href="#cb21-5" tabindex="-1"></a>                   <span class="at">norm =</span> <span class="st">&quot;l1&quot;</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" tabindex="-1"></a><span class="fu">summary</span>(ow_l1, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.     0.     0.          0
+## control 2.082 1.281 10.83   1.239       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted  429.       185
+## Weighted     80.42     185</code></pre>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="co"># L-infinity norm</span></span>
+<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a>ow_linf <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a>                     re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a>                   <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a>                   <span class="at">norm =</span> <span class="st">&quot;linf&quot;</span>)</span></code></pre></div>
+<pre><code>## Warning: The optimization failed to find a solution after 2e+05 iterations. The problem may be infeasible or more iterations may be required. Check the dual variables to see which
+## constraints are likely causing this issue.</code></pre>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a><span class="fu">summary</span>(ow_linf, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.        0.        0
+## control 1.877 1.549 3.578     1.5       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted  429.       185
+## Weighted     94.81     185</code></pre>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="co"># Relative entropy</span></span>
+<span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a>ow_re <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a>                     re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a>                   <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a>                   <span class="at">norm =</span> <span class="st">&quot;entropy&quot;</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" tabindex="-1"></a><span class="fu">summary</span>(ow_re, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1   L∞ Rel Ent # Zeros
+## treated 0.    0.    0.     0.          0
+## control 1.832 1.287 8.42   1.101       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted  429.       185
+## Weighted     98.46     185</code></pre>
+<p>We can see that minimizing the L2 norm yields weights that have the
+lowest RMS deviation, minimizing the L1 norm yields weights that have
+the lowest mean absolute deviation, minimizing the L<span class="math inline">\(\infty\)</span> norm yields weights that have the
+lowest maximum absolute deviation, and minimizing the relative entropy
+yields weights that have the lowest relative entropy. The L2 norm has
+the closest correspondence to the ESS (they have a 1:1 relationship),
+but there are some theoretical reasons to prefer other norms, especially
+when they correspond to certain assumptions about the true propensity
+score model. See <span class="citation">Källberg and Waernbaum (<a href="#ref-kallbergLargeSampleProperties2023">2023</a>)</span> for more
+information on these assumptions.</p>
+</div>
+<div id="estimand-and-targets" class="section level3">
+<h3><code>estimand</code> and <code>targets</code></h3>
+<p>Different estimands can be targeted by supplying an argument to
+<code>estimand</code>. Allowable estimands include the ATE, ATT, and
+ATC. These ensure the covariate means in each group resemble those in
+the full sample, the treated group, and the control group, respectively.
+For example, if set <code>estimand = &quot;ATE&quot;</code>, both groups will be
+weighted so that the covariate means are equal to the covariate means in
+the full sample, as demonstrated below.</p>
+<p>The covariate means in the full sample can be computed using
+<code>cobalt::col_w_mean()</code>:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>covs <span class="ot">&lt;-</span> lalonde[<span class="sc">-</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">9</span>)]</span>
+<span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">col_w_mean</span>(covs)</span></code></pre></div>
+<pre><code>##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75 
+##     27.3632     10.2687      0.3958      0.1173      0.4870      0.4153      0.6303   4557.5466   2184.9382</code></pre>
+<p>After estimating weights that target the ATE, we will see that the
+weighted covariate means in each group are equal to those in the full
+sample:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>ow_ate <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a>                      re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb31-3"><a href="#cb31-3" tabindex="-1"></a>                    <span class="at">estimand =</span> <span class="st">&quot;ATE&quot;</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" tabindex="-1"></a></span>
+<span id="cb31-5"><a href="#cb31-5" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">col_w_mean</span>(covs, <span class="at">weights =</span> ow_ate<span class="sc">$</span>weights,</span>
+<span id="cb31-6"><a href="#cb31-6" tabindex="-1"></a>                   <span class="at">subset =</span> lalonde<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>)</span></code></pre></div>
+<pre><code>##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75 
+##     27.3632     10.2687      0.3958      0.1173      0.4870      0.4153      0.6303   4557.5466   2184.9382</code></pre>
+<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">col_w_mean</span>(covs, <span class="at">weights =</span> ow_ate<span class="sc">$</span>weights,</span>
+<span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>                   <span class="at">subset =</span> lalonde<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">0</span>)</span></code></pre></div>
+<pre><code>##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75 
+##     27.3632     10.2687      0.3958      0.1173      0.4870      0.4153      0.6303   4557.5466   2184.9382</code></pre>
+<p>In addition to targeting a natural sample, it’s also possible to
+target a specific population by supplying an argument to
+<code>targets</code><a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>. The theory behind this methodology is
+described by <span class="citation">Chattopadhyay, Cohn, and Zubizarreta
+(<a href="#ref-chattopadhyayOneStepWeightingGeneralize2024">2024</a>)</span>.
+To request a different target population, <code>process_targets()</code>
+can be used to create a vector of target means which are supplied to the
+<code>targets</code> argument of <code>optweight()</code>.</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a>targets <span class="ot">&lt;-</span> <span class="fu">process_targets</span>(<span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a>                             re74 <span class="sc">+</span> re75,</span>
+<span id="cb35-3"><a href="#cb35-3" tabindex="-1"></a>                           <span class="at">data =</span> lalonde)</span>
+<span id="cb35-4"><a href="#cb35-4" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" tabindex="-1"></a>targets</span></code></pre></div>
+<pre><code>## - targets:
+##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75 
+##     27.3632     10.2687      0.3958      0.1173      0.4870      0.4153      0.6303   4557.5466   2184.9382</code></pre>
+<p>By default, <code>process_targets()</code> computes the mean of each
+covariate in the full sample. These can be modified similarly to
+<code>tols</code> to specify target means. Note that for categorical
+covariates, the proportions in the groups must sum to 1.</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" tabindex="-1"></a>targets[<span class="st">&quot;age&quot;</span>] <span class="ot">&lt;-</span> <span class="dv">35</span></span>
+<span id="cb37-2"><a href="#cb37-2" tabindex="-1"></a>targets[<span class="fu">c</span>(<span class="st">&quot;race_black&quot;</span>, <span class="st">&quot;race_hispan&quot;</span>, <span class="st">&quot;race_white&quot;</span>)] <span class="ot">&lt;-</span> <span class="fu">c</span>(.<span class="dv">5</span>, .<span class="dv">3</span>, .<span class="dv">2</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" tabindex="-1"></a>targets</span></code></pre></div>
+<pre><code>## - targets:
+##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75 
+##     35.0000     10.2687      0.5000      0.3000      0.2000      0.4153      0.6303   4557.5466   2184.9382</code></pre>
+<p>We can supply these to <code>optweight()</code> to request that the
+covariate means in the weighted sample are equal to these target means.
+We need to set <code>estimand = NULL</code> to ensure the
+<code>targets</code> are obeyed. Failing to do this will produce a
+warning.</p>
+<div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" tabindex="-1"></a>ow_target <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb39-2"><a href="#cb39-2" tabindex="-1"></a>                         re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb39-3"><a href="#cb39-3" tabindex="-1"></a>                       <span class="at">targets =</span> targets,</span>
+<span id="cb39-4"><a href="#cb39-4" tabindex="-1"></a>                       <span class="at">estimand =</span> <span class="cn">NULL</span>)</span>
+<span id="cb39-5"><a href="#cb39-5" tabindex="-1"></a></span>
+<span id="cb39-6"><a href="#cb39-6" tabindex="-1"></a><span class="co"># Weighted covariate means in the two groups</span></span>
+<span id="cb39-7"><a href="#cb39-7" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">col_w_mean</span>(covs, <span class="at">weights =</span> ow_target<span class="sc">$</span>weights,</span>
+<span id="cb39-8"><a href="#cb39-8" tabindex="-1"></a>                   <span class="at">subset =</span> lalonde<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">1</span>)</span></code></pre></div>
+<pre><code>##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75 
+##     35.0000     10.2687      0.5000      0.3000      0.2000      0.4153      0.6303   4557.5466   2184.9382</code></pre>
+<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">col_w_mean</span>(covs, <span class="at">weights =</span> ow_target<span class="sc">$</span>weights,</span>
+<span id="cb41-2"><a href="#cb41-2" tabindex="-1"></a>                   <span class="at">subset =</span> lalonde<span class="sc">$</span>treat <span class="sc">==</span> <span class="dv">0</span>)</span></code></pre></div>
+<pre><code>##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75 
+##     35.0000     10.2687      0.5000      0.3000      0.2000      0.4153      0.6303   4557.5466   2184.9382</code></pre>
+<p>The treatment effect estimate from this method of weighting would
+have the interpretation of the estimate from a population with similar
+means to those of the sample but with a mean age of 35 years (older than
+the original sample) and a racial profile of 50% Black, 30% Hispanic,
+and 20% white.</p>
+<p>Note that <code>process_targets()</code> can be supplied without a
+formula if targets are to be specified for all variables in
+<code>data</code>. We’ll use this syntax in the section on
+<code>optweight.svy()</code> below.</p>
+</div>
+<div id="sampling-weights-and-base-weights" class="section level3">
+<h3>Sampling weights and base weights</h3>
+<p>Sampling weights are used when attempting to generalize the estimates
+from a sample to a specific target population. Some datasets come with
+sampling weights in order for analyses using them to be valid. These
+weights can be supplied to the <code>s.weights</code> argument of
+<code>optweight()</code>. This has three effects: 1) the balance and
+target constraints correspond to the product of the estimated and
+sampling weights, 2) the target values for the covariates are weighted
+by the sampling weights (if not supplied through <code>targets</code>),
+and 3) the contribution of the estimated weights to the objective
+function is weighted by the sampling weights. Sampling weights are also
+used when bootstrapping using the fractional weighted bootstrap <span class="citation">(<a href="#ref-xuApplicationsFractionalRandomWeightBootstrap2020a">Xu et al.
+2020</a>)</span>, e.g., as implemented in the <em>fwb</em> package. By
+default, when <code>s.weights</code> is not specified, sampling weights
+are equal to 1.</p>
+<p>Base weights are a set of initial weights that have some properties
+that the user wants to retain while enforcing balance constraints. The
+estimated weights are chosen to minimize their distance from the base
+weights, where that distance corresponds to <span class="math inline">\(f\)</span>. These weights can be supplied to the
+<code>b.weights</code> argument of <code>optweight()</code>. By default,
+when not specified, base weights are equal to 1. An example use of base
+weights would be to enforce balance on a set of IPW weights estimated
+using a flexible model that is unable to exactly balance the covariates.
+This strategy was used by one of the winning methods in the 2016 ACIC
+data competition <span class="citation">(<a href="#ref-dorieAutomatedDoityourselfMethods2019">Dorie et al.
+2019</a>)</span>. We’ll demonstrate the use of base weights below.</p>
+<p>First, we’ll estimate propensity score weights using generalized
+boosted modeling through <em>WeightIt</em>. This is a flexible machine
+learning model, and we can request that features beyond the covariate
+means be balanced by minimizing the largest Kolmogorov-Smirnov (KS)
+statistic in the weighted sample.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" tabindex="-1"></a>W_gbm <span class="ot">&lt;-</span> WeightIt<span class="sc">::</span><span class="fu">weightit</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb43-2"><a href="#cb43-2" tabindex="-1"></a>                              re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb43-3"><a href="#cb43-3" tabindex="-1"></a>                            <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb43-4"><a href="#cb43-4" tabindex="-1"></a>                            <span class="at">method =</span> <span class="st">&quot;gbm&quot;</span>,</span>
+<span id="cb43-5"><a href="#cb43-5" tabindex="-1"></a>                            <span class="at">criterion =</span> <span class="st">&quot;ks.max&quot;</span>)</span></code></pre></div>
+<pre><code>## Warning: Some extreme weights were generated. Examine them with `summary()` and maybe trim them with `trim()`.</code></pre>
+<p>Next we’ll use <code>optweight()</code> to estimate a set of weights
+that differ as little as possible (as measured by the root mean squared
+divergence) from these estimated weights while enforcing exact balance
+on the covariate means.</p>
+<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a>ow_bw <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a>                     re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb45-3"><a href="#cb45-3" tabindex="-1"></a>                   <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb45-4"><a href="#cb45-4" tabindex="-1"></a>                   <span class="at">b.weights =</span> W_gbm<span class="sc">$</span>weights)</span></code></pre></div>
+<p>We’ll also estimate SBW weights with uniform base weights to see the
+difference in the properties of the weights.</p>
+<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" tabindex="-1"></a>ow <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb46-2"><a href="#cb46-2" tabindex="-1"></a>                  re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb46-3"><a href="#cb46-3" tabindex="-1"></a>                <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>)</span></code></pre></div>
+<p>Finally, we can look at balance on all three sets of weights on the
+means and KS statistics.</p>
+<div class="sourceCode" id="cb47"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" tabindex="-1"></a><span class="co"># Mean diferences</span></span>
+<span id="cb47-2"><a href="#cb47-2" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(W_gbm, <span class="at">stats =</span> <span class="st">&quot;m&quot;</span>,</span>
+<span id="cb47-3"><a href="#cb47-3" tabindex="-1"></a>                <span class="at">weights =</span> <span class="fu">list</span>(<span class="at">ow_bw =</span> ow_bw<span class="sc">$</span>weights,</span>
+<span id="cb47-4"><a href="#cb47-4" tabindex="-1"></a>                               <span class="at">ow =</span> ow<span class="sc">$</span>weights))</span></code></pre></div>
+<pre><code>## Balance Measures
+##                 Type Diff.weightit Diff.ow_bw Diff.ow
+## prop.score  Distance         0.577      0.571   1.782
+## age          Contin.         0.053     -0.000  -0.000
+## educ         Contin.        -0.080     -0.000  -0.000
+## race_black    Binary         0.017     -0.000  -0.000
+## race_hispan   Binary         0.002      0.000   0.000
+## race_white    Binary        -0.018      0.000   0.000
+## married       Binary         0.005      0.000  -0.000
+## nodegree      Binary         0.062     -0.000  -0.000
+## re74         Contin.         0.111     -0.000  -0.000
+## re75         Contin.         0.126     -0.000  -0.000
+## 
+## Effective sample sizes
+##          Control Treated
+## All       429.       185
+## weightit   24.71     185
+## ow_bw      24.54     185
+## ow        108.64     185</code></pre>
+<div class="sourceCode" id="cb49"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" tabindex="-1"></a><span class="co"># KS statistics</span></span>
+<span id="cb49-2"><a href="#cb49-2" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(W_gbm, <span class="at">stats =</span> <span class="st">&quot;ks&quot;</span>,</span>
+<span id="cb49-3"><a href="#cb49-3" tabindex="-1"></a>                <span class="at">weights =</span> <span class="fu">list</span>(<span class="at">ow_bw =</span> ow_bw<span class="sc">$</span>weights,</span>
+<span id="cb49-4"><a href="#cb49-4" tabindex="-1"></a>                               <span class="at">ow =</span> ow<span class="sc">$</span>weights))</span></code></pre></div>
+<pre><code>## Balance Measures
+##                 Type KS.weightit KS.ow_bw KS.ow
+## prop.score  Distance       0.223    0.222 0.615
+## age          Contin.       0.096    0.102 0.283
+## educ         Contin.       0.069    0.057 0.042
+## race_black    Binary       0.017    0.000 0.000
+## race_hispan   Binary       0.002    0.000 0.000
+## race_white    Binary       0.018    0.000 0.000
+## married       Binary       0.005    0.000 0.000
+## nodegree      Binary       0.062    0.000 0.000
+## re74         Contin.       0.062    0.037 0.226
+## re75         Contin.       0.096    0.056 0.140
+## 
+## Effective sample sizes
+##          Control Treated
+## All       429.       185
+## weightit   24.71     185
+## ow_bw      24.54     185
+## ow        108.64     185</code></pre>
+<p>Looking at the mean differences (in the columns
+<code>Diff.weightit</code>, <code>Diff.ow_bw</code>, and
+<code>Diff.ow</code> in the first stable), we can see that the GBM
+weights from <em>WeightIt</em> alone did not balance the covariate
+means, whereas both set of SBW weights from <em>optweight</em> did.
+However, in the second table, we can see big differences in the KS
+statistics between the SBW weights that incorporated the base weights
+and those that didn’t. The KS statistics for the SBW weights that
+incorporated the base weights (listed in the <code>KS.ow_bw</code>
+column) are very close to those for the GBM weights (listed in the
+<code>KS.weightit</code> column) because the estimated weights are very
+close to the GBM weights. In contrast, the SBW weights that didn’t
+incorporate the base weights have very high KS statistics for some
+covariates (listed in the <code>KS.ow</code> column); they are unable to
+take advantage of the distribution-balancing properties of the original
+GBM weights.</p>
+<p>In this way, incorporating the base weights provides a middle ground
+between the GBM weights and the basic SBW weights: they ensure exact
+balance on the means while attempting to retain as much similarity to
+the GBM weights as possible, thereby inheriting some of their balancing
+properties. Unfortunately, one of those properties is also a very low
+ESS, though in this case, little ESS is lost by enforcing the additional
+balance constraints. Using different norms with base weights can also be
+more effective than using with them uniform base weights, as different
+norms prioritize similarity to the base weights in ways that may retain
+different properties<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>.</p>
+</div>
+<div id="dual-variables" class="section level3">
+<h3>Dual variables</h3>
+<p>Dual variables, also known as “shadow prices”, are part of the output
+of the optimization problem that represent how “active” a given
+constraint is at the optimum <span class="citation">(<a href="#ref-zubizarretaStableWeightsThat2015">Zubizarreta
+2015</a>)</span>. A large dual variable means that relaxing the
+constraint will allow the objective function to reach a lower value.
+They are related to the coefficients on covariates in a propensity score
+model, representing how much each covariate is contributing to the
+estimation of the weights. <span class="citation">Zubizarreta (<a href="#ref-zubizarretaStableWeightsThat2015">2015</a>)</span> describes
+the utility of dual variables after SBW: they can be used to determine
+which covariates can have constraints relaxed to improve precision and
+which covariates can have constraints tightened without affecting
+precision. The dual variables are available in <code>optweight()</code>
+output in the <code>duals</code> component, but they can also be plotted
+using <code>plot()</code>. They can also be useful for diagnosing
+convergence failure; often, a constraint that is impossible to meet will
+have a high dual variable when no solution can be found.</p>
+<p>Below, we’ll demonstrate how we can use the dual variables to see how
+to modify constraints to try to take advantage of the bias-variance
+trade-off. First we’ll estimate SBW weights with tolerances of .02 for
+all covariates.</p>
+<div class="sourceCode" id="cb51"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" tabindex="-1"></a>tols <span class="ot">&lt;-</span> <span class="fu">process_tols</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb51-2"><a href="#cb51-2" tabindex="-1"></a>                       re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb51-3"><a href="#cb51-3" tabindex="-1"></a>                     <span class="at">tols =</span> .<span class="dv">02</span>)</span>
+<span id="cb51-4"><a href="#cb51-4" tabindex="-1"></a></span>
+<span id="cb51-5"><a href="#cb51-5" tabindex="-1"></a>ow <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb51-6"><a href="#cb51-6" tabindex="-1"></a>                  re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb51-7"><a href="#cb51-7" tabindex="-1"></a>                <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb51-8"><a href="#cb51-8" tabindex="-1"></a>                <span class="at">tols =</span> tols)</span>
+<span id="cb51-9"><a href="#cb51-9" tabindex="-1"></a></span>
+<span id="cb51-10"><a href="#cb51-10" tabindex="-1"></a><span class="fu">summary</span>(ow, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.      0.          0
+## control 1.616 1.267 4.212   1.118       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted   429.      185
+## Weighted     118.8     185</code></pre>
+<p>We can print the dual variables in the <code>duals</code> component
+of the output object and plot them with <code>plot()</code>:</p>
+<div class="sourceCode" id="cb53"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" tabindex="-1"></a>ow<span class="sc">$</span>duals</span></code></pre></div>
+<div class="kable-table">
+<table>
+<thead>
+<tr class="header">
+<th align="left">constraint</th>
+<th align="left">cov</th>
+<th align="right">dual</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">target</td>
+<td align="left">age</td>
+<td align="right">0.2449</td>
+</tr>
+<tr class="even">
+<td align="left">target</td>
+<td align="left">educ</td>
+<td align="right">0.6267</td>
+</tr>
+<tr class="odd">
+<td align="left">target</td>
+<td align="left">race</td>
+<td align="right">5.6655</td>
+</tr>
+<tr class="even">
+<td align="left">target</td>
+<td align="left">married</td>
+<td align="right">1.0527</td>
+</tr>
+<tr class="odd">
+<td align="left">target</td>
+<td align="left">nodegree</td>
+<td align="right">1.6113</td>
+</tr>
+<tr class="even">
+<td align="left">target</td>
+<td align="left">re74</td>
+<td align="right">0.7150</td>
+</tr>
+<tr class="odd">
+<td align="left">target</td>
+<td align="left">re75</td>
+<td align="right">0.0437</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" tabindex="-1"></a><span class="fu">plot</span>(ow)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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Oc6itShNwPH+U089JUEJo+TLJi1fZZjBmDFjpBikgQkTJkhQx2zKzZT31VdfNRdccIG55JJLxBh87rnnSty2Qhn977nnnoIa+om4Sx8vv/zyTNCUzH21AcUYSlbmEi31qKOOktzEHCO8z7p162KUFi0Lqg/x7JF8CrVuo169ehKmyLWUkNaoRvmmiy++WJgP9SBxMiNFKKVC0HPPPSeRVI4//vhCVCd1wICQtsaNG2cWLlyYl4WBBetMyIqUAYUEyp8MERm1wM8AiKJBKN98EytkXajgfKxcDWo/2wmczYe+Iwl16tQpKGlert12222mZ8+eUqc/jlteKrOF8nGZNm2a6datW76qCCwXBkRQTLacsMqdVeelTqqCxRhh9ukkrw9BKqrMGNsxuhE5C7anPn36mD/84Q9iiI5cQMwMgwYNMldddZW56aabDGuR8rkmiHG88847zc0335xgujGbHTnbk08+abApwvAJKd6uXTthhgceeGDksraVDMqAYowUEshPP/0kG0LdBkmkn2rVqsUobdvIQpjqfv36iSRy6qmnFqTRbPLdf//9ReLD4M0CvUWLFuWVARGum74icUFsSEXSZcYTppQv+vnnn8W+5RaXYktEtSe0eCkzIFXBYjxRTAWfcMIJZsaMGZL7jTfeEHtBnACIMaoveBZevt69extUoUIxHzqJHeTxxx+X/mJzYiasTp06ee0/5bPpdfbs2fJ30UUXieqXT+ZDh1hd/sADD4gKxjlMcNOmTQWZfaO+yiKVgGIiz05pXspnn31WROYBAwbELKn4s02aNMkwJd2jR49EY/lSs0M9n3ThhRcaXEQwFY/K26xZM5klymedlVU2UtYNN9wgxv5HH31UZh379u1b8HVPhe6/bsXIEnFeTPR2pfwh8I9//EPsa3F86+SvVfkrmVlG3J34JznyV1vllqwMqHLx19oVgbJGQG1AZT382nlFoHIRUAZUufhr7YpAWSOgDKish187rwhULgLKgCoXf61dEShrBHQ3fJEMv1vzUqNGja02QLI3CDcY+dj5TgQGVv7Wrl079AbXH3/8MVaECqDesGGDrHeZO3eu4e+tt94yLDhkBTJ9zyWxe3/8+PGmSZMmWxX78MMPm7Vr1xr2uQXRQw89JFtr4qw7YsnA7bffLh4DwqwNyzS+bH1hQWKctgT1raiu2f1ESkWAQOvW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" /><!-- --></p>
+<p>From this, it’s clear that <code>race</code> has the largest dual
+variable, and <code>re75</code> has the smallest. That means we can
+likely get the biggest gains in ESS by relaxing the constraint for
+<code>race</code>, whereas tightening the constraint for
+<code>re75</code> will have little effect on the ESS.</p>
+<div class="sourceCode" id="cb55"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" tabindex="-1"></a>tols[<span class="st">&quot;race&quot;</span>] <span class="ot">&lt;-</span> .<span class="dv">1</span></span>
+<span id="cb55-2"><a href="#cb55-2" tabindex="-1"></a></span>
+<span id="cb55-3"><a href="#cb55-3" tabindex="-1"></a>ow2 <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb55-4"><a href="#cb55-4" tabindex="-1"></a>                   re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb55-5"><a href="#cb55-5" tabindex="-1"></a>                 <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb55-6"><a href="#cb55-6" tabindex="-1"></a>                 <span class="at">tols =</span> tols)</span>
+<span id="cb55-7"><a href="#cb55-7" tabindex="-1"></a></span>
+<span id="cb55-8"><a href="#cb55-8" tabindex="-1"></a><span class="fu">summary</span>(ow2, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.       0.         0
+## control 1.424 1.113 3.638    0.91       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted   429.      185
+## Weighted     141.7     185</code></pre>
+<p>By relaxing the constraint on <code>race</code>, our ESS increased by
+quite a bit. We would not see the same increase had we instead relaxed
+the constraint on a covariate with a smaller dual variable, like
+<code>re75</code>:</p>
+<div class="sourceCode" id="cb57"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" tabindex="-1"></a>tols[] <span class="ot">&lt;-</span> .<span class="dv">02</span></span>
+<span id="cb57-2"><a href="#cb57-2" tabindex="-1"></a>tols[<span class="st">&quot;re75&quot;</span>] <span class="ot">&lt;-</span> .<span class="dv">1</span></span>
+<span id="cb57-3"><a href="#cb57-3" tabindex="-1"></a></span>
+<span id="cb57-4"><a href="#cb57-4" tabindex="-1"></a>ow3 <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb57-5"><a href="#cb57-5" tabindex="-1"></a>                   re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb57-6"><a href="#cb57-6" tabindex="-1"></a>                 <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb57-7"><a href="#cb57-7" tabindex="-1"></a>                 <span class="at">tols =</span> tols)</span>
+<span id="cb57-8"><a href="#cb57-8" tabindex="-1"></a></span>
+<span id="cb57-9"><a href="#cb57-9" tabindex="-1"></a><span class="fu">summary</span>(ow3, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.      0.          0
+## control 1.616 1.267 4.207   1.118       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted   429.      185
+## Weighted     118.8     185</code></pre>
+<p>However, this also means we can tighten the constraint on
+<code>re75</code> without much loss in ESS. Below, we decrease the
+tolerance on <code>re75</code> to 0:</p>
+<div class="sourceCode" id="cb59"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" tabindex="-1"></a>tols[<span class="st">&quot;re75&quot;</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
+<span id="cb59-2"><a href="#cb59-2" tabindex="-1"></a></span>
+<span id="cb59-3"><a href="#cb59-3" tabindex="-1"></a>ow4 <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb59-4"><a href="#cb59-4" tabindex="-1"></a>                   re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb59-5"><a href="#cb59-5" tabindex="-1"></a>                 <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>,</span>
+<span id="cb59-6"><a href="#cb59-6" tabindex="-1"></a>                 <span class="at">tols =</span> tols)</span>
+<span id="cb59-7"><a href="#cb59-7" tabindex="-1"></a></span>
+<span id="cb59-8"><a href="#cb59-8" tabindex="-1"></a><span class="fu">summary</span>(ow4, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##            L2    L1    L∞ Rel Ent # Zeros
+## treated 0.    0.    0.       0.         0
+## control 1.617 1.269 4.229    1.12       0
+## 
+## - Effective Sample Sizes:
+##            Control Treated
+## Unweighted   429.      185
+## Weighted     118.7     185</code></pre>
+<p>We see that despite the tighter tolerance, the ESS remains about the
+same. For reference, below are the balance statistics and ESSs for all
+four sets of weights:</p>
+<div class="sourceCode" id="cb61"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb61-2"><a href="#cb61-2" tabindex="-1"></a>                  re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb61-3"><a href="#cb61-3" tabindex="-1"></a>                <span class="at">weights =</span> <span class="fu">list</span>(<span class="at">ow  =</span> ow<span class="sc">$</span>weights,</span>
+<span id="cb61-4"><a href="#cb61-4" tabindex="-1"></a>                               <span class="at">ow2 =</span> ow2<span class="sc">$</span>weights,</span>
+<span id="cb61-5"><a href="#cb61-5" tabindex="-1"></a>                               <span class="at">ow3 =</span> ow3<span class="sc">$</span>weights,</span>
+<span id="cb61-6"><a href="#cb61-6" tabindex="-1"></a>                               <span class="at">ow4 =</span> ow4<span class="sc">$</span>weights))</span></code></pre></div>
+<pre><code>## Balance Measures
+##                Type Diff.ow Diff.ow2 Diff.ow3 Diff.ow4
+## age         Contin.    0.02     0.02    0.020     0.02
+## educ        Contin.    0.02     0.02    0.020     0.02
+## race_black   Binary    0.02     0.10    0.020     0.02
+## race_hispan  Binary    0.00     0.00    0.000     0.00
+## race_white   Binary   -0.02    -0.10   -0.020    -0.02
+## married      Binary   -0.02    -0.02   -0.020    -0.02
+## nodegree     Binary    0.02     0.02    0.020     0.02
+## re74        Contin.   -0.02    -0.02   -0.020    -0.02
+## re75        Contin.    0.02     0.02    0.026    -0.00
+## 
+## Effective sample sizes
+##     Control Treated
+## All   429.      185
+## ow    118.8     185
+## ow2   141.7     185
+## ow3   118.8     185
+## ow4   118.7     185</code></pre>
+<p>Again we can see that relaxing the balance constraint for
+<code>race</code> increases the ESS significantly, whereas either
+tightening or relaxing the constraint for <code>re75</code> has little
+effect on the ESS.</p>
+</div>
+<div id="multivariate-treatments" class="section level3">
+<h3>Multivariate treatments</h3>
+<p>It is possible to supply balance constraints for multiple (i.e.,
+multivariate) treatments simultaneously to estimate a single set of
+weights that satisfies them all. This approach is described by <span class="citation">Chen and Zhou (<a href="#ref-chenCausalEffectEstimation2023">2023</a>)</span> in the
+context of multiple continuous treatments. <code>optweightMV()</code>
+provides an interface to balancing multiple treatments and works
+similarly to <code>optweight()</code>, though with the ability to supply
+multiple balancing formulas. Though this can be used with conceptually
+distinct treatments, it can also sometimes be useful to use it with
+multiple transformations of a single treatment; for example, <span class="citation">Greifer (<a href="#ref-greiferEstimatingBalancingWeights2020">2020</a>)</span> found
+that in order to eliminate the bias due to certain kinds of imbalance
+with a continuous treatment, the square of the centered treatment must
+be uncorrelated with the covariates, in addition to the treatment itself
+being uncorrelated with the covariates.</p>
+<p>To use <code>optweightMV()</code>, supply a list of balancing
+formulas to the <code>formula.list</code> argument. The
+<code>tols.list</code> argument must also be a list with a vector of
+tolerances for each treatment, each with a value for each covariate.
+However, <code>targets</code> should be a vector with a value for each
+unique covariate since one cannot specify multiple targets for the same
+covariate. Below is example (not run) of how to specify a call to
+<code>optweightMV()</code>:</p>
+<div class="sourceCode" id="cb63"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" tabindex="-1"></a>owmv <span class="ot">&lt;-</span> <span class="fu">optweightMV</span>(<span class="fu">list</span>(t1 <span class="sc">~</span> x1 <span class="sc">+</span> x2 <span class="sc">+</span> x3,</span>
+<span id="cb63-2"><a href="#cb63-2" tabindex="-1"></a>                         t2 <span class="sc">~</span> x1 <span class="sc">+</span> x2 <span class="sc">+</span> x3,</span>
+<span id="cb63-3"><a href="#cb63-3" tabindex="-1"></a>                         t3 <span class="sc">~</span> x1 <span class="sc">+</span> x2 <span class="sc">+</span> x3),</span>
+<span id="cb63-4"><a href="#cb63-4" tabindex="-1"></a>                    <span class="at">data =</span> data,</span>
+<span id="cb63-5"><a href="#cb63-5" tabindex="-1"></a>                    <span class="at">tols.list =</span> <span class="fu">list</span>(<span class="fu">c</span>(<span class="at">x1 =</span> .<span class="dv">01</span>, <span class="at">x2 =</span> .<span class="dv">01</span>, <span class="at">x3 =</span> .<span class="dv">01</span>),</span>
+<span id="cb63-6"><a href="#cb63-6" tabindex="-1"></a>                                     <span class="fu">c</span>(<span class="at">x1 =</span> .<span class="dv">02</span>, <span class="at">x2 =</span> .<span class="dv">02</span>, <span class="at">x3 =</span> .<span class="dv">02</span>),</span>
+<span id="cb63-7"><a href="#cb63-7" tabindex="-1"></a>                                     <span class="fu">c</span>(<span class="at">x1 =</span> .<span class="dv">03</span>, <span class="at">x2 =</span> .<span class="dv">03</span>, <span class="at">x3 =</span> .<span class="dv">03</span>)),</span>
+<span id="cb63-8"><a href="#cb63-8" tabindex="-1"></a>                    <span class="at">targets =</span> <span class="fu">c</span>(<span class="at">x1 =</span> <span class="dv">10</span>, <span class="at">x2 =</span> .<span class="dv">34</span>, <span class="at">x3 =</span> <span class="fl">5.5</span>))</span></code></pre></div>
+<p>The syntax can be abbreviated by supplying a single value in each
+element of <code>tols.list</code> that is applied to all covariates,
+e.g., <code>tols.list = list(.01, .02, .03)</code>; or, if the same
+vector of balance tolerance is desired for all covariates for all
+treatments, a list with a single vector, e.g.,
+<code>tols.list = list(c(x1 = .01, x2 = .01, x3 = .01))</code>; or, if
+the same tolerance is desired for all covariates and all treatments, a
+list with a single value, e.g., <code>tols.list = list(.02)</code>.
+<code>targets</code> can be omitted to target the ATE (i.e., to balance
+the covariates at their means in the sample), but no other estimands can
+be specified.</p>
+<p>One might be tempted to use <code>optweightMV()</code> to estimate
+balancing weights for longitudinal treatments. While this is possible,
+it’s not as simple as supplying a balancing formula for each treatment
+balancing the treatment and covariate history to that treatment <span class="citation">(<a href="#ref-yiuJointCalibratedEstimation2020">Yiu
+and Su 2020</a>)</span>. <span class="citation">Zhou and Wodtke (<a href="#ref-zhouResidualBalancingMethod2020">2020</a>)</span> describe
+how to specify balance constraints for entropy balancing with
+longitudinal treatments, and they involve balancing not the covariate
+directly but rather the residuals in regressions of the covariates on
+treatment and covariate histories. Functionality for this specific
+method is not present in <em>optweight</em>, but is available in the
+<em>rbw</em> package. It may be possible to implement this in
+<em>optweight</em> manually, but I cannot advise on how to do so.</p>
+</div>
+<div id="optweight.svy" class="section level3">
+<h3><code>optweight.svy()</code></h3>
+<p>When the goal is not to balance treatment groups to each other or to
+some target population but rather to balance one sample to a target
+distribution, one can use <code>optweight.svy()</code> instead of
+<code>optweight()</code>. The <code>.svy</code> suffix is an indication
+that can be used as a method to generate survey weights so that the
+sample generalizes to a population of interest with specific means.
+<code>optweight.svy()</code> works just like <code>optweight()</code>
+except that no treatment variable is specified and <code>targets</code>
+should be specified.</p>
+<p>This is useful in the context of matching-adjusted indirect
+comparison [MAIC; <span class="citation">Signorovitch et al. (<a href="#ref-signorovitchComparativeEffectivenessHeadtoHead2010">2010</a>)</span>],
+which involves weighting a given trial sample to resemble the covariate
+distribution of some other trial’s sample. MAIC as originally described
+is equivalent to entropy balancing <span class="citation">(<a href="#ref-phillippoEquivalenceEntropyBalancing2020">Phillippo et al.
+2020</a>)</span>, which can be requested by setting
+<code>norm = &quot;entropy&quot;</code>.</p>
+<p>Below, we demonstrate weighting the control subset of
+<code>lalonde</code> to resemble a specific target population. As with
+<code>optweightit()</code>, it can be helpful to use
+<code>process_targets()</code> to simplify specification of the
+covariates means. If all variables in the dataset are to be specified,
+the formula can be omitted (for both <code>process_targets()</code> and
+<code>optweight.svy()</code>).</p>
+<div class="sourceCode" id="cb64"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" tabindex="-1"></a>lalonde_c <span class="ot">&lt;-</span> <span class="fu">subset</span>(lalonde, treat <span class="sc">==</span> <span class="dv">0</span>,</span>
+<span id="cb64-2"><a href="#cb64-2" tabindex="-1"></a>                    <span class="at">select =</span> <span class="sc">-</span><span class="fu">c</span>(treat))</span>
+<span id="cb64-3"><a href="#cb64-3" tabindex="-1"></a></span>
+<span id="cb64-4"><a href="#cb64-4" tabindex="-1"></a>targets <span class="ot">&lt;-</span> <span class="fu">process_targets</span>(lalonde_c)</span>
+<span id="cb64-5"><a href="#cb64-5" tabindex="-1"></a></span>
+<span id="cb64-6"><a href="#cb64-6" tabindex="-1"></a>targets</span></code></pre></div>
+<pre><code>## - targets:
+##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75        re78 
+##     28.0303     10.2354      0.2028      0.1422      0.6550      0.5128      0.5967   5619.2365   2466.4844   6984.1697</code></pre>
+<p>To request individual means, the targets can be set to those values.
+To allow a covariate mean to vary freely, one can either omit it from
+the calls to <code>process_targets()</code> and
+<code>optweight.svy()</code> or set the target value to <code>NA</code>.
+We’ll do that for <code>re78</code>, and set specific targets for the
+other variables except <code>re75</code>, which we’ll leave at its
+mean.</p>
+<div class="sourceCode" id="cb66"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" tabindex="-1"></a>targets[<span class="st">&quot;age&quot;</span>] <span class="ot">&lt;-</span> <span class="dv">40</span></span>
+<span id="cb66-2"><a href="#cb66-2" tabindex="-1"></a>targets[<span class="st">&quot;educ&quot;</span>] <span class="ot">&lt;-</span> <span class="dv">9</span></span>
+<span id="cb66-3"><a href="#cb66-3" tabindex="-1"></a>targets[<span class="fu">c</span>(<span class="st">&quot;race_black&quot;</span>, <span class="st">&quot;race_hispan&quot;</span>, <span class="st">&quot;race_white&quot;</span>)] <span class="ot">&lt;-</span> <span class="fu">c</span>(.<span class="dv">2</span>, .<span class="dv">2</span>, .<span class="dv">6</span>)</span>
+<span id="cb66-4"><a href="#cb66-4" tabindex="-1"></a>targets[<span class="st">&quot;married&quot;</span>] <span class="ot">&lt;-</span> .<span class="dv">6</span></span>
+<span id="cb66-5"><a href="#cb66-5" tabindex="-1"></a>targets[<span class="st">&quot;nodegree&quot;</span>] <span class="ot">&lt;-</span> .<span class="dv">6</span></span>
+<span id="cb66-6"><a href="#cb66-6" tabindex="-1"></a>targets[<span class="st">&quot;re74&quot;</span>] <span class="ot">&lt;-</span> <span class="dv">1000</span></span>
+<span id="cb66-7"><a href="#cb66-7" tabindex="-1"></a><span class="fu">is.na</span>(targets[<span class="st">&quot;re78&quot;</span>]) <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb66-8"><a href="#cb66-8" tabindex="-1"></a></span>
+<span id="cb66-9"><a href="#cb66-9" tabindex="-1"></a>targets</span></code></pre></div>
+<pre><code>## - targets:
+##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75        re78 
+##        40.0         9.0         0.2         0.2         0.6         0.6         0.6      1000.0      2466.5          NA</code></pre>
+<p>We can supply these to <code>optweight.svy()</code>. This time we’ll
+set <code>min.w</code> to 0 to allow those with weights of 0 to be
+effectively dropped from the sample.</p>
+<div class="sourceCode" id="cb68"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" tabindex="-1"></a>ow_s <span class="ot">&lt;-</span> <span class="fu">optweight.svy</span>(lalonde_c,</span>
+<span id="cb68-2"><a href="#cb68-2" tabindex="-1"></a>                      <span class="at">targets =</span> targets,</span>
+<span id="cb68-3"><a href="#cb68-3" tabindex="-1"></a>                      <span class="at">min.w =</span> <span class="dv">0</span>)</span>
+<span id="cb68-4"><a href="#cb68-4" tabindex="-1"></a></span>
+<span id="cb68-5"><a href="#cb68-5" tabindex="-1"></a>ow_s</span></code></pre></div>
+<pre><code>## An optweight.svy object
+##  - number of obs.: 429
+##  - norm minimized: &quot;l2&quot;
+##  - sampling weights: present
+##  - base weights: present
+##  - covariates: age, educ, race, married, nodegree, re74, re75, re78</code></pre>
+<div class="sourceCode" id="cb70"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" tabindex="-1"></a><span class="fu">summary</span>(ow_s)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+## - Weight ranges:
+##     Min                                 Max
+## all   0 |---------------------------| 13.54
+## 
+## - Units with 5 greatest weights by group:
+##                                          
+##         404   152     111      19      16
+##  all 9.4881 9.669 11.3265 11.4289 13.5373
+## 
+##        L2  L1    L∞ # Zeros
+## all 2.237 1.5 12.54     307
+## 
+## - Effective Sample Sizes:
+##             Total
+## Unweighted 429.  
+## Weighted    71.44</code></pre>
+<p>We can see that the weights required to move the sample toward our
+specified target decrease the ESS by quite a bit, and several units were
+given weights of 0. This can actually be a good thing if it means less
+data needs to be collected since those with weights of 0 are not
+necessary for subsequent analysis. We can examine the weighted covariate
+means using <code>cobalt::col_w_means()</code> as before, with the
+estimated weights supplied to <code>s.weights</code>:</p>
+<div class="sourceCode" id="cb72"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">col_w_mean</span>(lalonde_c, <span class="at">s.weights =</span> ow_s<span class="sc">$</span>weights)</span></code></pre></div>
+<pre><code>##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75        re78 
+##        40.0         9.0         0.2         0.2         0.6         0.6         0.6      1000.0      2466.5      4725.6</code></pre>
+<p>We can see that the weighted mean of <code>re78</code> is whatever
+minimized the L2 norm of the weights since no constraint was placed on
+it. As with <code>optweight()</code>, we can see how much each
+constraint contributed to the increase in variability by examining the
+dual variables:</p>
+<div class="sourceCode" id="cb74"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" tabindex="-1"></a><span class="fu">plot</span>(ow_s)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>Here it’s clear that the constraint on <code>re74</code> is
+contributing the most, and that relaxing the constraint would have the
+greatest impact on ESS. The constraint can be relaxed either by changing
+the target to one closer to that of the original data (or closer to
+where it would be if no constraint was placed on <code>re74</code>) or
+by setting a more relaxed tolerance for <code>re74</code> using
+<code>tols</code>. We’ll use the latter option below:</p>
+<div class="sourceCode" id="cb75"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" tabindex="-1"></a>tols <span class="ot">&lt;-</span> <span class="fu">process_tols</span>(lalonde_c, <span class="at">tols =</span> <span class="dv">0</span>)</span>
+<span id="cb75-2"><a href="#cb75-2" tabindex="-1"></a></span>
+<span id="cb75-3"><a href="#cb75-3" tabindex="-1"></a>tols[<span class="st">&quot;re74&quot;</span>] <span class="ot">&lt;-</span> <span class="dv">300</span></span>
+<span id="cb75-4"><a href="#cb75-4" tabindex="-1"></a></span>
+<span id="cb75-5"><a href="#cb75-5" tabindex="-1"></a>tols</span></code></pre></div>
+<pre><code>## - tols:
+##      age     educ     race  married nodegree     re74     re75     re78 
+##        0        0        0        0        0      300        0        0</code></pre>
+<p>Here we set the tolerance for <code>re74</code> to be 300. We need to
+set <code>std.cont = FALSE</code> to tell <code>optweight.svy()</code>
+that the tolerance for continuous variables should be in raw units, not
+standardized units. Now we can interpret our constraint as allowing the
+weighted mean for <code>re74</code> to be within 300 of its specified
+target of 1000.</p>
+<div class="sourceCode" id="cb77"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb77-1"><a href="#cb77-1" tabindex="-1"></a>ow_s2 <span class="ot">&lt;-</span> <span class="fu">optweight.svy</span>(lalonde_c,</span>
+<span id="cb77-2"><a href="#cb77-2" tabindex="-1"></a>                       <span class="at">targets =</span> targets,</span>
+<span id="cb77-3"><a href="#cb77-3" tabindex="-1"></a>                       <span class="at">min.w =</span> <span class="dv">0</span>,</span>
+<span id="cb77-4"><a href="#cb77-4" tabindex="-1"></a>                       <span class="at">tols =</span> tols,</span>
+<span id="cb77-5"><a href="#cb77-5" tabindex="-1"></a>                       <span class="at">std.cont =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb77-6"><a href="#cb77-6" tabindex="-1"></a></span>
+<span id="cb77-7"><a href="#cb77-7" tabindex="-1"></a><span class="fu">summary</span>(ow_s2, <span class="at">weight.range =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Summary of weights:
+## 
+##       L2   L1    L∞ # Zeros
+## all 2.07 1.44 10.68     290
+## 
+## - Effective Sample Sizes:
+##             Total
+## Unweighted 429.  
+## Weighted    81.15</code></pre>
+<p>This increased the ESS of the weights, and below we can see that the
+weighted mean for <code>re74</code> is at most 300 away from 1000, while
+the other variables are at their specified targets.</p>
+<div class="sourceCode" id="cb79"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb79-1"><a href="#cb79-1" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">col_w_mean</span>(lalonde_c, <span class="at">s.weights =</span> ow_s2<span class="sc">$</span>weights)</span></code></pre></div>
+<pre><code>##         age        educ  race_black race_hispan  race_white     married    nodegree        re74        re75        re78 
+##        40.0         9.0         0.2         0.2         0.6         0.6         0.6      1300.0      2466.5      4710.8</code></pre>
+</div>
+</div>
+<div id="estimating-effects" class="section level2">
+<h2>Estimating effects</h2>
+<p>Because SBW weights function just like IPW weights, the same
+procedures can be used to estimate the effect of treatment in an
+SBW-weighted sample. One only needs to run a regression of the outcome
+on the treatment with the weights incorporated. It is critical that the
+usual standard errors from <code>lm()</code> or <code>glm()</code>,
+etc., are not used; special standard errors are required after
+weighting. See
+<code>vignette(&quot;estimating-effects&quot;, package = &quot;WeightIt&quot;)</code> for
+more details on estimating effects after weighting. <em>WeightIt</em>
+provides tools for facilitating this when weights are estimated using
+<code>WeightIt::weightit()</code>, which provides an interface to
+<code>optweight()</code>, though with slightly fewer options
+available.</p>
+<p>Often, the best way to account for uncertainty in estimating a
+treatment effect after SBW is by bootstrapping. This ensures variability
+due to estimating the weights is correctly incorporated. The fractional
+weighted bootstrap is often particularly effective because no units are
+dropped from the sample in each bootstrap replication. When
+bootstrapping cannot be used (e.g., because it is too computationally
+demanding or the specified constraints cannot be expected to be
+satisfied in all bootstrap samples), using a robust standard error can
+be an acceptable alternative.</p>
+<p>Below, we demonstrate both approaches with the <code>lalonde</code>
+data. First, we estimate the weights for the ATT and fit the outcome
+model.</p>
+<div class="sourceCode" id="cb81"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" tabindex="-1"></a>ow <span class="ot">&lt;-</span> <span class="fu">optweight</span>(treat <span class="sc">~</span> age <span class="sc">+</span> educ <span class="sc">+</span> race <span class="sc">+</span> married <span class="sc">+</span> nodegree <span class="sc">+</span></span>
+<span id="cb81-2"><a href="#cb81-2" tabindex="-1"></a>                  re74 <span class="sc">+</span> re75, <span class="at">data =</span> lalonde,</span>
+<span id="cb81-3"><a href="#cb81-3" tabindex="-1"></a>                <span class="at">estimand =</span> <span class="st">&quot;ATT&quot;</span>)</span>
+<span id="cb81-4"><a href="#cb81-4" tabindex="-1"></a></span>
+<span id="cb81-5"><a href="#cb81-5" tabindex="-1"></a>fit <span class="ot">&lt;-</span> <span class="fu">lm</span>(re78 <span class="sc">~</span> treat, <span class="at">data =</span> lalonde,</span>
+<span id="cb81-6"><a href="#cb81-6" tabindex="-1"></a>          <span class="at">weights =</span> ow<span class="sc">$</span>weights)</span>
+<span id="cb81-7"><a href="#cb81-7" tabindex="-1"></a></span>
+<span id="cb81-8"><a href="#cb81-8" tabindex="-1"></a><span class="fu">coef</span>(fit)</span></code></pre></div>
+<pre><code>## (Intercept)       treat 
+##        5145        1204</code></pre>
+<p>Again, we must not use the usual standard errors produced by running
+<code>summary()</code> on the <code>lm()</code> output; we must use
+either bootstrapping or a robust standard error. First, we’ll use
+bootstrapping with <em>fwb</em>, which implements the fractional
+weighted bootstrap. This involves drawing a set of weights from a
+distribution and performing the entire analysis with these weights
+incorporated. These weights should be supplied to the
+<code>s.weights</code> argument in <code>optweight()</code> and
+multiplied by the returned weights before being used in
+<code>lm()</code><a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a>. We can use <code>update()</code> to
+re-estimate the SBW weights and weighted regression model in each
+bootstrap replication.</p>
+<div class="sourceCode" id="cb83"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb83-1"><a href="#cb83-1" tabindex="-1"></a><span class="fu">library</span>(fwb)</span>
+<span id="cb83-2"><a href="#cb83-2" tabindex="-1"></a></span>
+<span id="cb83-3"><a href="#cb83-3" tabindex="-1"></a>bootfun <span class="ot">&lt;-</span> <span class="cf">function</span>(data, w) {</span>
+<span id="cb83-4"><a href="#cb83-4" tabindex="-1"></a>  ow_boot <span class="ot">&lt;-</span> <span class="fu">update</span>(ow, <span class="at">s.weights =</span> w)</span>
+<span id="cb83-5"><a href="#cb83-5" tabindex="-1"></a>  fit_boot <span class="ot">&lt;-</span> <span class="fu">update</span>(fit, <span class="at">weights =</span> ow_boot<span class="sc">$</span>weights <span class="sc">*</span> w)</span>
+<span id="cb83-6"><a href="#cb83-6" tabindex="-1"></a>  </span>
+<span id="cb83-7"><a href="#cb83-7" tabindex="-1"></a>  <span class="fu">coef</span>(fit_boot)</span>
+<span id="cb83-8"><a href="#cb83-8" tabindex="-1"></a>}</span>
+<span id="cb83-9"><a href="#cb83-9" tabindex="-1"></a></span>
+<span id="cb83-10"><a href="#cb83-10" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)</span>
+<span id="cb83-11"><a href="#cb83-11" tabindex="-1"></a></span>
+<span id="cb83-12"><a href="#cb83-12" tabindex="-1"></a>boot <span class="ot">&lt;-</span> <span class="fu">fwb</span>(lalonde, bootfun,</span>
+<span id="cb83-13"><a href="#cb83-13" tabindex="-1"></a>            <span class="at">R =</span> <span class="dv">250</span>, <span class="co"># more is always better, but slower</span></span>
+<span id="cb83-14"><a href="#cb83-14" tabindex="-1"></a>            <span class="at">verbose =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## Warning: The optimization failed to find a stable solution.
+## The optimization failed to find a stable solution.
+## The optimization failed to find a stable solution.
+## The optimization failed to find a stable solution.</code></pre>
+<div class="sourceCode" id="cb85"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb85-1"><a href="#cb85-1" tabindex="-1"></a><span class="fu">summary</span>(boot, <span class="at">ci.type =</span> <span class="st">&quot;wald&quot;</span>)</span></code></pre></div>
+<pre><code>##             Estimate Std. Error CI 2.5 % CI 97.5 %
+## (Intercept)     5145        624     3923      6367
+## treat           1204        804     -372      2781</code></pre>
+<p>To use a robust standard error, it’s easiest to use functions in the
+<em>marginaleffects</em> package. Supply the output of <code>lm()</code>
+to <code>marginaleffects::avg_comparisons()</code> with
+<code>vcov = &quot;HC3&quot;</code> to request a robust standard error for the
+treatment effect estimate.</p>
+<div class="sourceCode" id="cb87"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" tabindex="-1"></a><span class="fu">library</span>(marginaleffects)</span>
+<span id="cb87-2"><a href="#cb87-2" tabindex="-1"></a></span>
+<span id="cb87-3"><a href="#cb87-3" tabindex="-1"></a><span class="fu">avg_comparisons</span>(fit,</span>
+<span id="cb87-4"><a href="#cb87-4" tabindex="-1"></a>                <span class="at">variables =</span> <span class="st">&quot;treat&quot;</span>,</span>
+<span id="cb87-5"><a href="#cb87-5" tabindex="-1"></a>                <span class="at">vcov =</span> <span class="st">&quot;HC3&quot;</span>,</span>
+<span id="cb87-6"><a href="#cb87-6" tabindex="-1"></a>                <span class="at">newdata =</span> <span class="fu">subset</span>(treat <span class="sc">==</span> <span class="dv">1</span>))</span></code></pre></div>
+<pre><code>## 
+##  Estimate Std. Error    z Pr(&gt;|z|)   S 2.5 % 97.5 %
+##      1204        824 1.46    0.144 2.8  -411   2819
+## 
+## Term: treat
+## Type: response
+## Comparison: 1 - 0</code></pre>
+<p>Robust standard errors treat the weights as fixed, which often yields
+larger standard errors than the bootstrap.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="ref-chanGloballyEfficientNonparametric2016" class="csl-entry">
+Chan, Kwun Chuen Gary, Sheung Chi Phillip Yam, and Zheng Zhang. 2016.
+<span>“Globally Efficient Non-Parametric Inference of Average Treatment
+Effects by Empirical Balancing Calibration Weighting.”</span>
+<em>Journal of the Royal Statistical Society: Series B (Statistical
+Methodology)</em> 78 (3): 673–700. <a href="https://doi.org/10.1111/rssb.12129">https://doi.org/10.1111/rssb.12129</a>.
+</div>
+<div id="ref-chattopadhyayOneStepWeightingGeneralize2024" class="csl-entry">
+Chattopadhyay, Ambarish, Eric R. Cohn, and José R. Zubizarreta. 2024.
+<span>“One-Step Weighting to Generalize and Transport Treatment Effect
+Estimates to a Target Population.”</span> <em>The American
+Statistician</em> 78 (3): 280–89. <a href="https://doi.org/10.1080/00031305.2023.2267598">https://doi.org/10.1080/00031305.2023.2267598</a>.
+</div>
+<div id="ref-chattopadhyayBalancingVsModeling2020" class="csl-entry">
+Chattopadhyay, Ambarish, Christopher H. Hase, and José R. Zubizarreta.
+2020. <span>“Balancing Vs Modeling Approaches to Weighting in
+Practice.”</span> <em>Statistics in Medicine</em> 39 (24): 3227–54. <a href="https://doi.org/10.1002/sim.8659">https://doi.org/10.1002/sim.8659</a>.
+</div>
+<div id="ref-chattopadhyayImpliedWeightsLinear2023" class="csl-entry">
+Chattopadhyay, Ambarish, and José R Zubizarreta. 2023. <span>“On the
+Implied Weights of Linear Regression for Causal Inference.”</span>
+<em>Biometrika</em> 110 (3): 615–29. <a href="https://doi.org/10.1093/biomet/asac058">https://doi.org/10.1093/biomet/asac058</a>.
+</div>
+<div id="ref-chenCausalEffectEstimation2023" class="csl-entry">
+Chen, Juan, and Yingchun Zhou. 2023. <span>“Causal Effect Estimation for
+Multivariate Continuous Treatments.”</span> <em>Biometrical Journal</em>
+65 (5): 2200122. <a href="https://doi.org/10.1002/bimj.202200122">https://doi.org/10.1002/bimj.202200122</a>.
+</div>
+<div id="ref-dorieAutomatedDoityourselfMethods2019" class="csl-entry">
+Dorie, Vincent, Jennifer Hill, Uri Shalit, Marc Scott, and Dan Cervone.
+2019. <span>“Automated Versus Do-It-Yourself Methods for Causal
+Inference: Lessons Learned from a Data Analysis Competition.”</span>
+<em>Statistical Science</em> 34 (1): 43–68. <a href="https://doi.org/10.1214/18-STS667">https://doi.org/10.1214/18-STS667</a>.
+</div>
+<div id="ref-fongCovariateBalancingPropensity2018" class="csl-entry">
+Fong, Christian, Chad Hazlett, and Kosuke Imai. 2018. <span>“Covariate
+Balancing Propensity Score for a Continuous Treatment: Application to
+the Efficacy of Political Advertisements.”</span> <em>The Annals of
+Applied Statistics</em> 12 (1): 156–77. <a href="https://doi.org/10.1214/17-AOAS1101">https://doi.org/10.1214/17-AOAS1101</a>.
+</div>
+<div id="ref-greiferEstimatingBalancingWeights2020" class="csl-entry">
+Greifer, Noah. 2020. <span>“Estimating Balancing Weights for Continuous
+Treatments Using Constrained Optimization.”</span> PhD thesis. <a href="https://doi.org/10.17615/DYSS-B342">https://doi.org/10.17615/DYSS-B342</a>.
+</div>
+<div id="ref-hainmuellerEntropyBalancingCausal2012" class="csl-entry">
+Hainmueller, J. 2012. <span>“Entropy Balancing for Causal Effects: A
+Multivariate Reweighting Method to Produce Balanced Samples in
+Observational Studies.”</span> <em>Political Analysis</em> 20 (1):
+25–46. <a href="https://doi.org/10.1093/pan/mpr025">https://doi.org/10.1093/pan/mpr025</a>.
+</div>
+<div id="ref-kallbergLargeSampleProperties2023" class="csl-entry">
+Källberg, David, and Ingeborg Waernbaum. 2023. <span>“Large Sample
+Properties of Entropy Balancing Estimators of Average Causal
+Effects.”</span> <em>Econometrics and Statistics</em>, November. <a href="https://doi.org/10.1016/j.ecosta.2023.11.004">https://doi.org/10.1016/j.ecosta.2023.11.004</a>.
+</div>
+<div id="ref-phillippoEquivalenceEntropyBalancing2020" class="csl-entry">
+Phillippo, David M., Sofia Dias, A. E. Ades, and Nicky J. Welton. 2020.
+<span>“Equivalence of Entropy Balancing and the Method of Moments for
+Matching<span>-</span>Adjusted Indirect Comparison.”</span> <em>Research
+Synthesis Methods</em> 11 (4): 568–72. <a href="https://doi.org/10.1002/jrsm.1416">https://doi.org/10.1002/jrsm.1416</a>.
+</div>
+<div id="ref-signorovitchComparativeEffectivenessHeadtoHead2010" class="csl-entry">
+Signorovitch, James E., Eric Q. Wu, Andrew P. Yu, Charles M. Gerrits,
+Evan Kantor, Yanjun Bao, Shiraz R. Gupta, and Parvez M. Mulani. 2010.
+<span>“Comparative Effectiveness Without Head-to-Head Trials: A Method
+for Matching-Adjusted Indirect Comparisons Applied to Psoriasis
+Treatment with Adalimumab or Etanercept.”</span>
+<em>PharmacoEconomics</em> 28 (10): 935–45. <a href="https://doi.org/10.2165/11538370-000000000-00000">https://doi.org/10.2165/11538370-000000000-00000</a>.
+</div>
+<div id="ref-tubbickeEntropyBalancingContinuous2022" class="csl-entry">
+Tübbicke, Stefan. 2022. <span>“Entropy Balancing for Continuous
+Treatments.”</span> <em>Journal of Econometric Methods</em> 11 (1):
+71–89. <a href="https://doi.org/10.1515/jem-2021-0002">https://doi.org/10.1515/jem-2021-0002</a>.
+</div>
+<div id="ref-vegetabileNonparametricEstimationPopulation2021" class="csl-entry">
+Vegetabile, Brian G., Beth Ann Griffin, Donna L. Coffman, Matthew
+Cefalu, Michael W. Robbins, and Daniel F. McCaffrey. 2021.
+<span>“Nonparametric Estimation of Population Average Dose-Response
+Curves Using Entropy Balancing Weights for Continuous Exposures.”</span>
+<em>Health Services and Outcomes Research Methodology</em> 21 (1):
+69–110. <a href="https://doi.org/10.1007/s10742-020-00236-2">https://doi.org/10.1007/s10742-020-00236-2</a>.
+</div>
+<div id="ref-wangMinimalDispersionApproximately2020" class="csl-entry">
+Wang, Yixin, and Jose R. Zubizarreta. 2020. <span>“Minimal Dispersion
+Approximately Balancing Weights: Asymptotic Properties and Practical
+Considerations.”</span> <em>Biometrika</em> 107 (1): 93–105. <a href="https://doi.org/10.1093/biomet/asz050">https://doi.org/10.1093/biomet/asz050</a>.
+</div>
+<div id="ref-xuApplicationsFractionalRandomWeightBootstrap2020a" class="csl-entry">
+Xu, Li, Chris Gotwalt, Yili Hong, Caleb B. King, and William Q. Meeker.
+2020. <span>“Applications of the Fractional-Random-Weight
+Bootstrap.”</span> <em>The American Statistician</em> 74 (4): 345–58. <a href="https://doi.org/10.1080/00031305.2020.1731599">https://doi.org/10.1080/00031305.2020.1731599</a>.
+</div>
+<div id="ref-yiuJointCalibratedEstimation2020" class="csl-entry">
+Yiu, Sean, and Li Su. 2020. <span>“Joint Calibrated Estimation of
+Inverse Probability of Treatment and Censoring Weights for Marginal
+Structural Models.”</span> <em>Biometrics</em> n/a (n/a).
+https://doi.org/<a href="https://doi.org/10.1111/biom.13411">https://doi.org/10.1111/biom.13411</a>.
+</div>
+<div id="ref-zhaoEntropyBalancingDoubly2017" class="csl-entry">
+Zhao, Qingyuan, and Daniel Percival. 2017. <span>“Entropy Balancing Is
+Doubly Robust.”</span> <em>Journal of Causal Inference</em> 5 (1). <a href="https://doi.org/10.1515/jci-2016-0010">https://doi.org/10.1515/jci-2016-0010</a>.
+</div>
+<div id="ref-zhouResidualBalancingMethod2020" class="csl-entry">
+Zhou, Xiang, and Geoffrey T. Wodtke. 2020. <span>“Residual Balancing: A
+Method of Constructing Weights for Marginal Structural Models.”</span>
+<em>Political Analysis</em> 28 (4): 487–506. <a href="https://doi.org/10.1017/pan.2020.2">https://doi.org/10.1017/pan.2020.2</a>.
+</div>
+<div id="ref-zubizarretaStableWeightsThat2015" class="csl-entry">
+Zubizarreta, José R. 2015. <span>“Stable Weights That Balance Covariates
+for Estimation with Incomplete Outcome Data.”</span> <em>Journal of the
+American Statistical Association</em> 110 (511): 910–22. <a href="https://doi.org/10.1080/01621459.2015.1023805">https://doi.org/10.1080/01621459.2015.1023805</a>.
+</div>
+</div>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>Indeed, using <code>estimand</code> is just a shortcut
+to using <code>targets</code> when the target population is one of those
+supported by <code>estimand</code>.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn2"><p>Note that base weights do not affect the estimated
+weights when using <code>norm = &quot;log&quot;</code>.<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
+<li id="fn3"><p>When sampling weights are used with
+<code>optweight()</code>, they should first be multiplied by the
+bootstrap weights.<a href="#fnref3" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
