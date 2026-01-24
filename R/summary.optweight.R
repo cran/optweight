@@ -1,44 +1,31 @@
-#' Summarize, print, and plot information about estimated weights
+#' Summarize, Print, and Plot Information about Estimated Weights
 #'
-#' These functions summarize the weights resulting from a call to
-#' [optweight()] or [optweight.svy()]. `summary()` produces summary statistics on the distribution of weights, including their
-#' range and variability, and the effective sample size of the weighted sample
-#' (computing using the formula in McCaffrey, Rudgeway, & Morral, 2004). `plot()` creates a histogram of the weights.
+#' These functions summarize the weights resulting from a call to [optweight()], [optweightMV()], or [optweight.svy()]. `summary()` produces summary statistics on the distribution of weights, including their range and variability, and the effective sample size of the weighted sample (computed using the formula in McCaffrey, et al., 2004). `plot()` creates a histogram of the weights.
 #'
-#' @param object An `optweight`, `optweightMV`, or `optweight.svy` object; the output of a call to [optweight()] or [optweight.svy()].
-#' @param top How many of the largest and smallest weights to display. Default
-#' is 5.
-#' @param ignore.s.weights Whether or not to ignore sampling weights when
-#' computing the weight summary. If `FALSE`, the default, the estimated
-#' weights will be multiplied by the sampling weights (if any) before values
-#' are computed.
-#' @param weight.range `logical`; whether display statistics about the range of weights and the highest and lowest weights for each group. Default is `TRUE`.
-#' @param x A `summary.optweight`, `summary.optweightMV`, or `summary.optweight.svy` object; the output of a call to `summary.optweight()`, `summary.optweightMV()`, or ()`summary.optweight.svy`.
-#' @param ...  Additional arguments. For `plot()`, additional arguments
-#' passed to [graphics::hist()] to determine the number of bins,
-#' though [ggplot2::geom_histogram()] from \pkg{ggplot2} is actually
-#' used to create the plot.
+#' @param object an `optweight`, `optweightMV`, or `optweight.svy` object; the output of a call to [optweight()], [optweightMV()], or [optweight.svy()].
+#' @param top `integer`; how many of the largest and smallest weights to display. Default
+#' is 5. Ignored when `weight.range = FALSE`.
+#' @param ignore.s.weights logical`; whether to ignore sampling weights when
+#' computing the weight summary. Default is `FALSE`.
+#' @param weight.range `logical`; whether to display statistics about the range of weights and the highest and lowest weights for each group. Default is `TRUE`.
+#' @param x a `summary.optweight`, `summary.optweightMV`, or `summary.optweight.svy` object; the output of a call to `summary.optweight()`, `summary.optweightMV()`, or ()`summary.optweight.svy`.
+#' @param ...  Additional arguments. For `plot()`, additional arguments passed to [graphics::hist()] to determine the number of bins, though [ggplot2::geom_histogram()] from \pkg{ggplot2} is actually used to create the plot.
 #'
 #' @returns
-#' For point treatments (i.e., `optweight` objects),
-#' `summary()` returns a `summary.optweight` object with the following
+#' For point treatments (i.e., `optweight` objects), `summary()` returns a `summary.optweight` object with the following
 #' elements:
-#' \item{weight.range}{The range (minimum and maximum) weight for
-#' each treatment group.}
-#' \item{weight.top}{The units with the greatest weights
-#' in each treatment group; how many are included is determined by `top`.}
-#' \item{l2}{The square root of the L2 norm of the estimated weights from the base weights, weighted by the sampling weights (if any): \eqn{\sqrt{\frac{1}{n}\sum_i {s_i(w_i - b_i)^2}}}}
-#' \item{l1}{The L1 norm of the estimated weights from the base weights, weighted by the sampling weights (if any): \eqn{\frac{1}{n}\sum_i {s_i \vert w_i - b_i \vert}}}
-#' \item{linf}{The L\eqn{\infty} norm (maximum absolute deviation) of the estimated weights from the base weights: \eqn{\max_i {\vert w_i - b_i \vert}}}
-#' \item{rel.ent}{The relative entropy between the estimated weights and the base weights (entropy norm), weighted by the sampling weights (if any): \eqn{\frac{1}{n}\sum_i {s_i w_i \log\left(\frac{w_i}{b_i}\right)}}. Only computed if all weights are positive.}
+#' \item{weight.range}{The range (minimum and maximum) weight for each treatment group.}
+#' \item{weight.top}{The units with the greatest weights in each treatment group; how many are included is determined by `top`.}
+#' \item{l2}{The square root of the \eqn{L_2} norm of the estimated weights from the base weights, weighted by the sampling weights (if any): \eqn{\sqrt{\frac{1}{n}\sum_i {s_i(w_i - b_i)^2}}}}
+#' \item{l1}{The \eqn{L_1} norm of the estimated weights from the base weights, weighted by the sampling weights (if any): \eqn{\frac{1}{n}\sum_i {s_i \vert w_i - b_i \vert}}}
+#' \item{linf}{The \eqn{L_\infty} norm (maximum absolute deviation) of the estimated weights from the base weights: \eqn{\max_i {\vert w_i - b_i \vert}}}
+#' \item{rel.ent}{The relative entropy between the estimated weights and the base weights, weighted by the sampling weights (if any): \eqn{\frac{1}{n}\sum_i {s_i w_i \log\left(\frac{w_i}{b_i}\right)}}. Only computed if all weights are positive.}
 #' \item{num.zeros}{The number of units with a weight equal to 0.}
 #' \item{effective.sample.size}{The effective sample size for each treatment group before and after weighting.}
 #'
-#' For multivariate treatments (i.e., `optweightMV` objects), a list of
-#' the above elements for each treatment.
+#' For multivariate treatments (i.e., `optweightMV` objects), a list of the above elements for each treatment.
 #'
-#' For `optweight.svy` objects, a list of the above elements but with no
-#' treatment group divisions.
+#' For `optweight.svy` objects, the above object but with no treatment group divisions.
 #'
 #' `plot()` returns a `ggplot` object with a histogram displaying the
 #' distribution of the estimated weights. If the estimand is the ATT or ATC,
@@ -54,7 +41,7 @@
 #' Propensity Score Estimation With Boosted Regression for Evaluating Causal
 #' Effects in Observational Studies. *Psychological Methods*, 9(4), 403–425. \doi{10.1037/1082-989X.9.4.403}
 #'
-#' @examplesIf requireNamespace("cobalt", quietly = TRUE)
+#' @examplesIf rlang::is_installed("cobalt")
 #' library("cobalt")
 #' data("lalonde", package = "cobalt")
 #'
@@ -69,7 +56,7 @@
 #' plot(s, breaks = 12)
 
 #' @exportS3Method summary optweight
-summary.optweight <- function(object, top = 5, ignore.s.weights = FALSE, weight.range = TRUE, ...) {
+summary.optweight <- function(object, top = 5L, ignore.s.weights = FALSE, weight.range = TRUE, ...) {
 
   chk::chk_flag(ignore.s.weights)
   chk::chk_flag(weight.range)
@@ -83,14 +70,11 @@ summary.optweight <- function(object, top = 5, ignore.s.weights = FALSE, weight.
     else object$s.weights
   }
 
-  bw <- {
-    if (is_null(object$b.weights)) rep_with(1, object$weights)
-    else object$b.weights
-  }
+  bw <- object$b.weights %or% rep_with(1, object$weights)
 
   t <- object$treat
 
-  out <- .summary_internal(t, attr(t, "treat.type"),
+  out <- .summary_internal(t, .attr(t, "treat.type"),
                            object$weights, sw, bw,
                            top, weight.range)
 
@@ -106,18 +90,9 @@ summary.optweight <- function(object, top = 5, ignore.s.weights = FALSE, weight.
   out
 }
 
-#' @exportS3Method print summary.optweight
-print.summary.optweight <- function(x, ...) {
-  cat("Summary of weights:\n\n")
-
-  .print_summary_internal(x, ...)
-
-  invisible(x)
-}
-
 #' @rdname summary.optweight
 #' @exportS3Method summary optweightMV
-summary.optweightMV <- function(object, top = 5, ignore.s.weights = FALSE, weight.range = TRUE, ...) {
+summary.optweightMV <- function(object, top = 5L, ignore.s.weights = FALSE, weight.range = TRUE, ...) {
   chk::chk_flag(ignore.s.weights)
   chk::chk_flag(weight.range)
 
@@ -130,13 +105,10 @@ summary.optweightMV <- function(object, top = 5, ignore.s.weights = FALSE, weigh
     else object$s.weights
   }
 
-  bw <- {
-    if (is_null(object$b.weights)) rep_with(1, object$weights)
-    else object$b.weights
-  }
+  bw <- object$b.weights %or% rep_with(1, object$weights)
 
   out.list <- lapply(object$treat.list, function(t) {
-    .summary_internal(t, attr(t, "treat.type"),
+    .summary_internal(t, .attr(t, "treat.type"),
                       object$weights, sw, bw,
                       top, weight.range)
   })
@@ -148,29 +120,9 @@ summary.optweightMV <- function(object, top = 5, ignore.s.weights = FALSE, weigh
   out.list
 }
 
-#' @exportS3Method print summary.optweightMV
-print.summary.optweightMV <- function(x, ...) {
-  only.one <- length(x) == 1L || all_apply(x, identical, x[[1L]])
-
-  cat("Summary of weights:\n\n")
-  for (ti in seq_along(x)) {
-    if (!only.one) {
-      cat(sprintf(" - - - - - - - - - - Treatment %s - - - - - - - - - -\n", ti))
-    }
-
-    .print_summary_internal(x[[ti]], ...)
-
-    if (only.one) {
-      break
-    }
-  }
-
-  invisible(x)
-}
-
 #' @rdname summary.optweight
 #' @exportS3Method summary optweight.svy
-summary.optweight.svy <- function(object, top = 5, ignore.s.weights = FALSE, weight.range = TRUE, ...) {
+summary.optweight.svy <- function(object, top = 5L, ignore.s.weights = FALSE, weight.range = TRUE, ...) {
   chk::chk_flag(ignore.s.weights)
   chk::chk_flag(weight.range)
 
@@ -183,10 +135,7 @@ summary.optweight.svy <- function(object, top = 5, ignore.s.weights = FALSE, wei
     else object$s.weights
   }
 
-  bw <- {
-    if (is_null(object$b.weights)) rep_with(1, object$weights)
-    else object$b.weights
-  }
+  bw <- object$b.weights %or% rep_with(1, object$weights)
 
   out <- .summary_internal(NULL, "svy", object$weights, sw, bw, top, weight.range)
 
@@ -197,20 +146,49 @@ summary.optweight.svy <- function(object, top = 5, ignore.s.weights = FALSE, wei
   out
 }
 
-#' @exportS3Method print summary.optweight.svy
-print.summary.optweight.svy <- function(x, ...) {
-  cat("Summary of weights:\n\n")
+#' @exportS3Method print summary.optweight
+print.summary.optweight <- function(x, digits = 3L, ...) {
+  chk::chk_whole_number(digits)
 
-  .print_summary_internal(x, ...)
+  cat0(space(18L), .ul("Summary of weights"), "\n")
+
+  .print_summary_internal(x, digits = digits, ...)
 
   invisible(x)
 }
 
+#' @exportS3Method print summary.optweightMV
+print.summary.optweightMV <- function(x, digits = 3L, ...) {
+  chk::chk_whole_number(digits)
+
+  only.one <- length(x) == 1L || all_apply(x, function(y) isTRUE(all.equal(x[[1L]], y)))
+
+  cat0(space(18L), .ul("Summary of weights"), "\n")
+
+  if (only.one) {
+    .print_summary_internal(x[[1L]], digits = digits, ...)
+  }
+  else {
+    for (ti in seq_along(x)) {
+      cat0(txtbar(19L),
+           .it(sprintf(" Treatment %s ", ti)),
+           txtbar(19L), "\n")
+
+      .print_summary_internal(x[[ti]], digits = digits, ...)
+    }
+  }
+
+  invisible(x)
+}
+
+#' @exportS3Method print summary.optweight.svy
+print.summary.optweight.svy <- print.summary.optweight
+
 #' @rdname summary.optweight
 #' @exportS3Method plot summary.optweight
 plot.summary.optweight <- function(x, ...) {
-  w <- attr(x, "weights")
-  focal <- attr(w, "focal")
+  w <- .attr(x, "weights")
+  focal <- .attr(w, "focal")
 
   subtitle <- if (is_not_null(focal)) sprintf("For Units Not in Treatment Group %s", add_quotes(focal))
 
@@ -237,11 +215,11 @@ plot.summary.optweight <- function(x, ...) {
   ww <- w * sw
 
   if (treat.type == "binary") {
-    tx <- list(treated = which(t == 1),
-               control = which(t == 0))
+    tx <- list(treated = whichv(t, 1),
+               control = whichv(t, 0))
   }
   else if (treat.type == "multi-category") {
-    tx <- lapply(levels(t), function(i) which(t == i)) |>
+    tx <- lapply(levels(t), function(i) whichv(t, i)) |>
       setNames(levels(t))
   }
   else {
@@ -249,7 +227,7 @@ plot.summary.optweight <- function(x, ...) {
   }
 
   if (weight.range) {
-    out$weight.range <- lapply(tx, function(ti) c(min(ww[ti]), max(w[ti]))) |>
+    out$weight.range <- lapply(tx, function(ti) frange(ww[ti])) |>
       setNames(names(tx))
 
     top.weights <- lapply(tx, function(ti) sort(ww[ti], decreasing = TRUE)[seq_len(top)]) |>
@@ -293,45 +271,47 @@ plot.summary.optweight <- function(x, ...) {
   out
 }
 
-.print_summary_internal <- function(x, ...) {
+.print_summary_internal <- function(x, digits, ...) {
   if (is_not_null(x$weight.range)) {
-    cat("- Weight ranges:\n")
+    cat0("- ", .it("Weight ranges"), ":\n\n")
 
     x$weight.range |>
       text_box_plot(width = 28L) |>
-      round_df_char(digits = 4, pad = " ") |>
-      print.data.frame(...)
-
-    cat(sprintf("\n- Units with %s greatest weights by group:\n",
-                length(x$weight.top[[1L]])))
+      round_df_char(digits = digits, pad = " ") |>
+      print.data.frame()
 
     top <- max(lengths(x$weight.top))
-    data.frame(unlist(lapply(names(x$weight.top), function(y) c(" ", y))),
-               matrix(unlist(lapply(x$weight.top, function(y) c(names(y), character(top - length(y)),
-                                                                round(y, 4), character(top - length(y))))),
-                      byrow = TRUE, nrow = 2 * length(x$weight.top))) |>
+
+    cat0("\n- ", .it(sprintf("Units with the %s most extreme weights%s",
+                             top,
+                             ngettext(length(x$weight.top), "", " by group"))),
+         ":\n")
+
+
+    cbind(unlist(lapply(names(x$weight.top), function(y) c(" ", y))),
+          matrix(unlist(lapply(x$weight.top, function(y) c(names(y), character(top - length(y)),
+                                                           round(y, digits), character(top - length(y))))),
+                 byrow = TRUE, nrow = 2 * length(x$weight.top))) |>
+      as.data.frame() |>
       setNames(character(1L + top)) |>
-      print.data.frame(row.names = FALSE)
+      print.data.frame(row.names = FALSE, digits = digits)
 
     cat("\n")
   }
 
-  matrix(c(x$l2, x$l1, x$linf, x$rel.ent, x$num.zeros),
-         nrow = length(x$l2),
-         byrow = FALSE,
-         dimnames = list(names(x$l2),
-                         c("L2", "L1", "L\u221E",
-                           "Rel Ent"[is_not_null(x$rel.ent)],
-                           "# Zeros"))) |>
-    as.data.frame() |>
-    round_df_char(digits = 3, pad = " ") |>
-    print.data.frame(...)
+  cat0("\n- ", .it("Weight statistics"), ":\n\n")
 
-  cat("\n- Effective Sample Sizes:\n")
+  cbind(x$l2, x$l1, x$linf, x$rel.ent, x$num.zeros) |>
+    as.data.frame() |>
+    setNames(c("L2", "L1", "L\u221E", "Rel Ent"[is_not_null(x$rel.ent)], "# Zeros")) |>
+    round_df_char(digits = digits, pad = " ") |>
+    print.data.frame()
+
+  cat0("\n- ", .it("Effective Sample Sizes"), ":\n\n")
+
   x$effective.sample.size |>
-    round_df_char(digits = 2, pad = " ") |>
-    print.data.frame(...)
-  cat("\n")
+    round_df_char(digits = 2L, pad = " ") |>
+    print.data.frame()
 
   invisible(x)
 }
