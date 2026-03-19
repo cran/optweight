@@ -12,7 +12,7 @@
 
 <meta name="author" content="Noah Greifer" />
 
-<meta name="date" content="2026-01-23" />
+<meta name="date" content="2026-03-18" />
 
 <title>Using optweight to Estimate Stable Balancing Weights</title>
 
@@ -365,7 +365,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">Using optweight to Estimate Stable
 Balancing Weights</h1>
 <h4 class="author">Noah Greifer</h4>
-<h4 class="date">2026-01-23</h4>
+<h4 class="date">2026-03-18</h4>
 
 
 
@@ -907,7 +907,7 @@ each norm minimized (columns).</p>
 <tr class="odd">
 <td align="left">L2</td>
 <td align="right">1.717</td>
-<td align="right">2.017</td>
+<td align="right">1.984</td>
 <td align="right">1.877</td>
 <td align="right">1.832</td>
 </tr>
@@ -921,14 +921,14 @@ each norm minimized (columns).</p>
 <tr class="odd">
 <td align="left">L∞</td>
 <td align="right">5.002</td>
-<td align="right">9.924</td>
+<td align="right">9.317</td>
 <td align="right">3.577</td>
 <td align="right">8.421</td>
 </tr>
 <tr class="even">
 <td align="left">Rel Ent</td>
 <td align="right">1.230</td>
-<td align="right">1.227</td>
+<td align="right">1.184</td>
 <td align="right">1.500</td>
 <td align="right">1.101</td>
 </tr>
@@ -985,14 +985,14 @@ sample:</p>
 <span id="cb22-6"><a href="#cb22-6" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(ow_ate, <span class="at">disp =</span> <span class="st">&quot;m&quot;</span>)</span></code></pre></div>
 <pre><code>## Balance Measures
 ##                Type  M.0.Adj  M.1.Adj Diff.Adj
-## age         Contin.   27.363   27.363       -0
+## age         Contin.   27.363   27.363        0
 ## educ        Contin.   10.269   10.269        0
 ## race_black   Binary    0.396    0.396        0
 ## race_hispan  Binary    0.117    0.117       -0
 ## race_white   Binary    0.487    0.487        0
 ## married      Binary    0.415    0.415        0
 ## nodegree     Binary    0.630    0.630        0
-## re74        Contin. 4557.547 4557.547       -0
+## re74        Contin. 4557.547 4557.547        0
 ## re75        Contin. 2184.938 2184.938        0
 ## 
 ## Effective sample sizes
@@ -1049,7 +1049,7 @@ warning.</p>
 ##                Type  M.0.Adj  M.1.Adj Diff.Adj
 ## age         Contin.   35.000   35.000       -0
 ## educ        Contin.   10.269   10.269       -0
-## race_black   Binary    0.500    0.500        0
+## race_black   Binary    0.500    0.500       -0
 ## race_hispan  Binary    0.300    0.300        0
 ## race_white   Binary    0.200    0.200        0
 ## married      Binary    0.415    0.415        0
@@ -1090,7 +1090,7 @@ to <code>NA</code>:</p>
 <span id="cb30-14"><a href="#cb30-14" tabindex="-1"></a>cobalt<span class="sc">::</span><span class="fu">bal.tab</span>(ow_target2, <span class="at">disp =</span> <span class="st">&quot;m&quot;</span>)</span></code></pre></div>
 <pre><code>## Balance Measures
 ##                Type  M.0.Adj  M.1.Adj Diff.Adj
-## age         Contin.   27.363   27.363        0
+## age         Contin.   27.363   27.363       -0
 ## educ        Contin.   10.269   10.269        0
 ## race_black   Binary    0.451    0.451        0
 ## race_hispan  Binary    0.164    0.164       -0
@@ -1122,11 +1122,11 @@ between-group balance by setting <code>targets = NA</code>.</p>
 ## educ        Contin.   10.318   10.318        0
 ## race_black   Binary    0.454    0.454        0
 ## race_hispan  Binary    0.166    0.166        0
-## race_white   Binary    0.380    0.380       -0
+## race_white   Binary    0.380    0.380        0
 ## married      Binary    0.319    0.319        0
-## nodegree     Binary    0.626    0.626       -0
-## re74        Contin. 3316.369 3316.369       -0
-## re75        Contin. 1994.888 1994.888       -0
+## nodegree     Binary    0.626    0.626        0
+## re74        Contin. 3316.369 3316.369        0
+## re75        Contin. 1994.888 1994.888        0
 ## 
 ## Effective sample sizes
 ##            Control Treated
@@ -1216,11 +1216,11 @@ previously, or we can set its target balance tolerance to
 ##                Type  M.0.Adj  M.1.Adj Diff.Adj
 ## age         Contin.   26.495   26.495       -0
 ## educ        Contin.   10.269   10.269        0
-## race_black   Binary    0.500    0.500       -0
+## race_black   Binary    0.500    0.500        0
 ## race_hispan  Binary    0.230    0.230       -0
 ## race_white   Binary    0.270    0.270       -0
-## married      Binary    0.415    0.415       -0
-## nodegree     Binary    0.630    0.630       -0
+## married      Binary    0.415    0.415        0
+## nodegree     Binary    0.630    0.630        0
 ## re74        Contin. 4557.547 4557.547        0
 ## re75        Contin. 2184.938 2184.938        0
 ## 

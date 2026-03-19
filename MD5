@@ -1,9 +1,9 @@
-0604beb52e78230bcce96a983090c7cb *DESCRIPTION
+c3ec365aef48cb1f24d03da3da9c260c *DESCRIPTION
 178b8081960a87ac2a60aab5309d4039 *NAMESPACE
-a04dc9752296106767947cca27cd7100 *NEWS.md
+5238269b9e4caba0d2093a1fe6948ba9 *NEWS.md
 8224e03dd2ea2de5db1b7ca4191679ca *R/chk-utilities.R
 98aa832b74833f36a80d35533f6200fa *R/functions_for_processing.R
-6d6421ae2cd6dfd23b6a61bffb4338e6 *R/opt_prep.R
+3ea81fca204ebc60ac94a53fdff96522 *R/opt_prep.R
 d035ca4b7e3886ecc33d13e32aa60710 *R/optweight-package.R
 e061c04e6d264b2c5298f2f13b189f2c *R/optweight.R
 53f3bc8886bdd1dc237f3b292e041015 *R/optweight.svy.R
@@ -13,11 +13,11 @@ e061c04e6d264b2c5298f2f13b189f2c *R/optweight.R
 8245ffb40ed524314233ff429232fd0b *R/process_tols.R
 8b7cec32c8bc365cbb425eca5ab3236e *R/summary.optweight.R
 ca58072bdb26451962d68608ae47947a *R/utils.R
-cdbdcd417864428d4fcab88d8e92b55f *README.md
-c92875d84db5dc752473b28c0333e8e5 *build/stage23.rdb
+6fde2ae49789ae50f4fa4e9ee1da72d2 *README.md
+7ffbcd5591a4645dde2953957704024f *build/stage23.rdb
 6248de5ad00f3ad00cd98650f177a197 *build/vignette.rds
 cb83baa3e12781d9be4fce25456d5f6c *inst/doc/optweight.Rmd
-03388f0d743c206fffc1c2f01a091814 *inst/doc/optweight.html
+e41ccc041780a410e3ae24aa9cd4b017 *inst/doc/optweight.html
 7f92b27b1b0e189db6c74a7950f1a0b6 *man/figures/README-unnamed-chunk-4-1.png
 83c9d62a460e71de54336885489b7a71 *man/figures/logo.png
 01c4ab39a1ddc8938ba2753a8da84d8e *man/macros/macros.Rd
@@ -32,6 +32,6 @@ e9bf09a9a2b70c61ed09155e3bc603bd *man/process_targets.Rd
 4a97e244a4e158c496ad54f113cec472 *tests/testthat.R
 c33f022a712066379e4ee1133c2a11c5 *tests/testthat/fixtures/make_test_data.R
 68eb0793e7ad2a4a9fbc14e9d4b483db *tests/testthat/fixtures/test_data.rds
-8096f0900675f874280b89ff88fdc8f8 *tests/testthat/test-optweight.R
+223e5658c50ce1d93f2647d79e26708f *tests/testthat/test-optweight.R
 cb83baa3e12781d9be4fce25456d5f6c *vignettes/optweight.Rmd
 f39d3fb1b4812538b15f1999d03ece23 *vignettes/references.bib
